@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>المنتجات | متجرك الإلكتروني</title>
+  <link rel="icon" href="assets/logo/logo.svg">
+  <!-- تم التحديث إلى v=28 -->
+  <link rel="stylesheet" href="css/style.css?v=28">
+  <style>
+  @media (max-width: 768px) {
+    .feature-grid {
+      grid-template-columns: repeat(2, 1fr) !important;
+      gap: 10px !important;
+    }
+    .feature-grid h3 { font-size: 13px !important; margin-bottom: 5px !important; }
+    .feature-grid p { font-size: 11px !important; }
+    
+    .product-grid, #shopGrid {
+      display: grid !important;
+      grid-template-columns: repeat(2, 1fr) !important;
+      gap: 8px !important;
+    }
+    .product-card {
+      min-width: 0 !important;
+      padding: 8px !important;
+    }
+    .product-card .product-name { font-size: 12px !important; margin-bottom: 4px !important; line-height: 1.4 !important; }
+    .product-card .product-desc { display: none !important; } 
+    .product-card .stock-line { font-size: 10px !important; margin-bottom: 4px !important; }
+    .product-card .price { font-size: 13px !important; margin: 6px 0 !important; }
+    .product-card .product-actions .btn { padding: 6px !important; font-size: 11px !important; }
+  }
+  </style>
+</head>
+<body>
+
+<div id="site-header" data-active="products"></div>
+
+<main>
+  <section class="page-header">
+    <div class="container">
+      <div class="breadcrumb"><a href="index.html">الرئيسية</a> / المنتجات</div>
+      <h1>كل المنتجات</h1>
+      <p>تصفّح مجموعتنا الكاملة من المنتجات، وابحث أو صفِّ النتائج حسب القسم والسعر.</p>
+    </div>
+  </section>
+
+  <section class="section" style="padding-top:10px;">
+    <div class="container">
+
+      <div class="shop-toolbar">
+        <div class="search-box">
+          <input type="text" id="searchInput" placeholder="ابحث عن منتج...">
+          <span></span>
+        </div>
+        <select id="sortSelect" class="sort-select">
+          <option value="default">الأحدث</option>
+          <option value="price-asc">السعر: من الأقل للأعلى</option>
+          <option value="price-desc">السعر: من الأعلى للأقل</option>
+          <option value="name">الاسم (أ-ي)</option>
+        </select>
+        <span id="resultCount" style="font-size:.85rem;color:var(--ink-600);white-space:nowrap;"></span>
+      </div>
+
+      <div class="shop-layout">
+        <aside class="filter-panel">
+          <div>
+            <h4>الأقسام</h4>
+            <div class="cat-list" id="filterCategories"></div>
+          </div>
+          <div>
+            <h4>نطاق السعر (د.ع)</h4>
+            <div class="range-row">
+              <input type="number" id="priceMin" placeholder="من">
+              <span>—</span>
+              <input type="number" id="priceMax" placeholder="إلى">
+            </div>
+          </div>
+        </aside>
+
+        <div class="product-grid" id="shopGrid"></div>
+      </div>
+
+    </div>
+  </section>
+</main>
+
+<div id="site-footer"></div>
+
+<!-- تم التحديث إلى v=28 -->
+<script src="js/config.js?v=28"></script>
+<script src="js/icons.js?v=28"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="js/store.js"></script>
+<script src="js/whatsapp.js?v=28"></script>
+<script src="js/app.js?v=28"></script>
+<script src="js/products.js?v=28"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const shopSearchSpan = document.querySelector(".shop-toolbar .search-box span");
+    if (shopSearchSpan && typeof iconSvg === "function") {
+      shopSearchSpan.innerHTML = iconSvg("search");
+    }
+  });
+</script>
+</body>
+</html>

@@ -47,5 +47,5 @@ const STORE_CONFIG = {
   // === ImageKit (اختياري) — تحويل روابط ImgBB إلى CDN محسّن (WebP + تحجيم) ===
   // إن تُرك فارغًا، تُستخدم روابط ImgBB مباشرة بدون أي تحويل (يعمل بشكل طبيعي،
   // فقط بدون تحسينات CDN الإضافية).
-  imageKitEndpoint: "https://ik.imagekit.io/test3wf/"
+  imageKitEndpoint: ""
 };

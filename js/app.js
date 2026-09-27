@@ -58,7 +58,7 @@ function renderHeader() {
     '<header class="site-header">' +
       '<div class="container header-inner">' +
         '<a href="index.html" class="brand">' +
-          '<img src="assets/logo/logo.svg" alt="' + settings.storeName + '">' +
+          '<img src="assets/logo/logo.png" alt="' + settings.storeName + '">' +
           '<span class="brand-name">' + settings.storeName + '<span>' + settings.storeTagline + "</span></span>" +
         "</a>" +
         '<nav class="main-nav" id="mainNav">' + navHtml + "</nav>" +
@@ -189,7 +189,7 @@ function renderFooter() {
       '<div class="container">' +
         '<div class="footer-grid">' +
           '<div>' +
-            '<div class="footer-brand"><img src="assets/logo/logo.svg" alt="' + settings.storeName + '"><strong>' + settings.storeName + "</strong></div>" +
+            '<div class="footer-brand"><img src="assets/logo/logo.png" alt="' + settings.storeName + '"><strong>' + settings.storeName + "</strong></div>" +
             "<p>" + settings.storeDescription + "</p>" +
           "</div>" +
           '<div><h4>روابط سريعة</h4><ul>' +

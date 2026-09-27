@@ -31,21 +31,21 @@ const STORE_CONFIG = {
 
   // بيانات دخول الأدمن الافتراضية — قيمة أولية فقط لتتمكن من الدخول أول مرة.
   // غيّرها فورًا من تبويب "الإعدادات" في لوحة التحكم بعد أول دخول.
-  adminUsername: "admin",
-  adminPassword: "ChangeMe@123",
+  adminUsername: "a",
+  adminPassword: "aaaa",
 
   // === Firebase Realtime Database (اختياري) ===
   // اتركه فارغًا للعمل بدون مزامنة سحابية (localStorage فقط، مناسب كنسخة
   // تجريبية أو متجر بزائر واحد لكل جهاز). عبّئه برابط قاعدة بيانات Firebase
   // الخاصة بك لتفعيل المزامنة بين الأجهزة.
-  firebaseDatabaseURL: "",
+  firebaseDatabaseURL: "https://test3-2a6de-default-rtdb.firebaseio.com",
 
   // === ImgBB (اختياري) — رفع صور المنتجات/الأقسام/الإعلانات من لوحة التحكم ===
   // احصل على مفتاح مجاني من https://api.imgbb.com/
-  imgbbApiKey: "",
+  imgbbApiKey: "27c528db427de3446824abe1f6ec4f22",
 
   // === ImageKit (اختياري) — تحويل روابط ImgBB إلى CDN محسّن (WebP + تحجيم) ===
   // إن تُرك فارغًا، تُستخدم روابط ImgBB مباشرة بدون أي تحويل (يعمل بشكل طبيعي،
   // فقط بدون تحسينات CDN الإضافية).
-  imageKitEndpoint: ""
+  imageKitEndpoint: "https://ik.imagekit.io/test3wf/"
 };

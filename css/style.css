@@ -186,16 +186,28 @@ button { font-family: inherit; cursor: pointer; }
 .hero-trust div span { font-size: .85rem; color: var(--ink-600); }
 
 /* 1. جعل الحاوية الخلفية دائرية بالكامل */
+/* 1. جعل الحاوية الخلفية دائرية بالكامل */
 .hero-art {
     position: relative;
-    aspect-ratio: 1/1 !important; /* مهم جداً: جعل النسبة 1:1 ليصبح دائرة مثالية */
+    aspect-ratio: 1/1 !important; 
     border-radius: 50% !important; 
-    background: var(--olive-50);
+    background: transparent !important; /* جعل الخلفية شفافة تماماً */
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     overflow: hidden !important;
-    border: 1px solid var(--line);
+    border: none !important; /* 👈 هذا السطر هو الذي سيُخفي الإطار المربع */
+}
+
+/* 2. ضبط صورة الشعار بداخلها */
+.hero-art img {
+    width: 75% !important; /* يمكنك جعلها 100% إذا أردت تكبير الشعار */
+    height: auto !important; 
+    object-fit: contain !important;
+    border-radius: 0 !important; 
+    background: transparent !important; 
+    box-shadow: none !important; 
+    border: none !important; /* 👈 التأكد من إزالة أي إطار عن الصورة نفسها */
 }
 
 /* 2. ضبط صورة الشعار بداخلها */

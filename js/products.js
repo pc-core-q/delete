@@ -76,7 +76,47 @@ function renderGridInto(containerId, products, emptyMessage) {
   el.innerHTML = products.map(renderProductCard).join("");
 }
 
-const shopState = { search: "", categoryId: "all", sort: "default", minPrice: "", maxPrice: "", filterMode: "", mobileMenuOpen: false };
+const SHOP_PAGE_SIZE = 20;
+const shopState = {
+  search: "", categoryId: "all", sort: "default", minPrice: "", maxPrice: "", filterMode: "", mobileMenuOpen: false,
+  pagination: { token: 0, loading: false, done: false, cursors: {}, sources: [], products: [] }
+};
+
+function resetShopPagination() {
+  shopState.pagination = {
+    token: shopState.pagination.token + 1,
+    loading: false,
+    done: false,
+    cursors: {},
+    sources: [],
+    products: []
+  };
+}
+
+function showShopLoading(show) {
+  const el = document.getElementById("shopLoading");
+  if (el) el.style.display = show ? "flex" : "none";
+}
+
+function ensureShopPaginationUI() {
+  const grid = document.getElementById("shopGrid");
+  if (!grid || document.getElementById("shopLoadMoreSentinel")) return;
+
+  const wrap = document.createElement("div");
+  wrap.id = "shopLoadMoreWrap";
+  wrap.style.cssText = "grid-column:1/-1;text-align:center;padding:14px 0;";
+  wrap.innerHTML =
+    '<div id="shopLoading" style="display:none;align-items:center;justify-content:center;gap:8px;color:var(--ink-500);font-size:.9rem;">جاري تحميل المزيد…</div>' +
+    '<div id="shopLoadMoreSentinel" aria-hidden="true" style="height:2px;"></div>';
+  grid.parentNode.insertBefore(wrap, grid.nextSibling);
+
+  if ("IntersectionObserver" in window) {
+    const observer = new IntersectionObserver(function(entries) {
+      if (entries.some(function(entry) { return entry.isIntersecting; })) loadNextShopPage();
+    }, { rootMargin: "500px 0px" });
+    observer.observe(document.getElementById("shopLoadMoreSentinel"));
+  }
+}
 
 function initShopPage() {
   const grid = document.getElementById("shopGrid");
@@ -96,13 +136,13 @@ function initShopPage() {
     searchInput.value = shopState.search;
     searchInput.addEventListener("input", function () {
       shopState.search = searchInput.value.trim();
-      renderShopResults();
+      renderShopResults({ reset: true });
     });
   }
   if (sortSelect) {
     sortSelect.addEventListener("change", function () {
       shopState.sort = sortSelect.value;
-      renderShopResults();
+      renderShopResults({ reset: true });
     });
   }
   [minInput, maxInput].forEach(function (input) {
@@ -110,7 +150,7 @@ function initShopPage() {
     input.addEventListener("input", function () {
       shopState.minPrice = minInput ? minInput.value : "";
       shopState.maxPrice = maxInput ? maxInput.value : "";
-      renderShopResults();
+      renderShopResults({ reset: true });
     });
   });
 
@@ -122,7 +162,7 @@ window.updateCategory = function(catId) {
     shopState.categoryId = catId;
     shopState.filterMode = "";
     renderCategoryFilterPanel();
-    renderShopResults();
+    renderShopResults({ reset: true });
 
     // إعادة التمرير لأعلى شبكة المنتجات مع مراعاة ارتفاع الهيدر الثابت
     const grid = document.getElementById("shopGrid");
@@ -185,68 +225,154 @@ function renderCategoryFilterPanel() {
       if (window.innerWidth <= 980) shopState.mobileMenuOpen = false;
       const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
       window.history.pushState({path:newUrl}, '', newUrl);
-      renderCategoryFilterPanel(); 
-      renderShopResults();
+      renderCategoryFilterPanel();
+      renderShopResults({ reset: true });
     });
   });
 }
 
-function renderShopResults() {
-  let list = Store.getProducts();
+async function fetchNextShopBatch(token) {
+  const page = shopState.pagination;
+  if (page.loading || page.done || token !== page.token) return;
+  page.loading = true;
+  showShopLoading(true);
 
-  if (shopState.filterMode === "featured") list = list.filter(function (p) { return p.featured; });
-  else if (shopState.filterMode === "offer") list = list.filter(function (p) { return p.isOffer; });
-  else if (shopState.filterMode === "new") list = list.filter(function (p) { return p.isNew; });
+  try {
+    // Explicit search/price filtering needs the complete matching dataset because
+    // Firebase Realtime Database cannot perform substring searches or combine
+    // category + arbitrary price filters in one efficient query.
+    if (shopState.search || shopState.minPrice || shopState.maxPrice || shopState.sort !== "default") {
+      if (!page.products.length) {
+        const all = await Store.loadAllProductsFromFirebase();
+        if (token !== page.token) return;
+        page.products = all.slice();
+      }
+      page.done = true;
+      return;
+    }
 
-  if (shopState.categoryId !== "all" && !shopState.filterMode) {
-    const subCatIds = Store.getCategories().filter(function(c) { return c.parentId === shopState.categoryId; }).map(function(c) { return c.id; });
-    const allowedCats = [shopState.categoryId].concat(subCatIds);
-    list = list.filter(function (p) { return allowedCats.includes(p.categoryId); });
+    let added = [];
+
+    if (shopState.filterMode === "featured" || shopState.filterMode === "offer" || shopState.filterMode === "new") {
+      const map = { featured: ["featured", true], offer: ["isOffer", true], new: ["isNew", true] };
+      const cfg = map[shopState.filterMode];
+      const sourceKey = "field:" + cfg[0] + ":" + cfg[1];
+      const cursor = page.cursors[sourceKey] || null;
+      const result = await Store.loadProductsPageByField(cfg[0], cfg[1], SHOP_PAGE_SIZE, cursor);
+      if (token !== page.token) return;
+      added = result.products;
+      page.cursors[sourceKey] = result.nextCursor;
+      page.done = result.done;
+    } else if (shopState.categoryId === "all") {
+      const sourceKey = "all";
+      const result = await Store.loadProductsPage(SHOP_PAGE_SIZE, page.cursors[sourceKey] || null);
+      if (token !== page.token) return;
+      added = result.products;
+      page.cursors[sourceKey] = result.nextCursor;
+      page.done = result.done;
+    } else {
+      const categories = Store.getCategories();
+      const selected = categories.find(function(c) { return c.id === shopState.categoryId; });
+      const ids = [shopState.categoryId];
+      if (selected && !selected.parentId) {
+        categories.filter(function(c) { return c.parentId === selected.id; }).forEach(function(c) { ids.push(c.id); });
+      }
+
+      // Keep a cursor per category. A parent category can therefore paginate
+      // through all of its subcategories without ever downloading the full catalog.
+      for (let i = 0; i < ids.length && added.length < SHOP_PAGE_SIZE; i++) {
+        const categoryId = ids[i];
+        const sourceKey = "cat:" + categoryId;
+        if (page.cursors[sourceKey] === "__done__") continue;
+        const remaining = SHOP_PAGE_SIZE - added.length;
+        const result = await Store.loadProductsPageByCategory(categoryId, remaining, page.cursors[sourceKey] || null);
+        if (token !== page.token) return;
+        added = added.concat(result.products);
+        page.cursors[sourceKey] = result.done ? "__done__" : result.nextCursor;
+      }
+
+      page.done = ids.every(function(id) { return page.cursors["cat:" + id] === "__done__"; });
+    }
+
+    const seen = new Set(page.products.map(function(p) { return p.id; }));
+    added.forEach(function(p) {
+      if (p && !seen.has(p.id)) {
+        seen.add(p.id);
+        page.products.push(p);
+      }
+    });
+
+    // If a source returned nothing but is not explicitly done, stop this cycle
+    // to avoid a tight loop. A later scroll can safely try again.
+    if (!added.length && !page.done) page.done = true;
+  } catch (error) {
+    console.error("Shop pagination error:", error);
+    page.done = true;
+  } finally {
+    if (token === shopState.pagination.token) {
+      page.loading = false;
+      showShopLoading(false);
+    }
   }
-  
+}
+
+async function renderShopResults(options) {
+  options = options || {};
+  ensureShopPaginationUI();
+  const token = shopState.pagination.token;
+
+  if (options.reset) {
+    resetShopPagination();
+    ensureShopPaginationUI();
+  }
+
+  await fetchNextShopBatch(shopState.pagination.token);
+  if (token !== shopState.pagination.token && !options.reset) return;
+
+  let list = shopState.pagination.products.slice();
+
   if (shopState.search) {
     const q = shopState.search.toLowerCase();
-    list = list.filter(function (p) { return p.name.toLowerCase().includes(q) || (p.description || "").toLowerCase().includes(q); });
+    list = list.filter(function (p) { return (p.name || "").toLowerCase().includes(q) || (p.description || "").toLowerCase().includes(q); });
   }
-  if (shopState.minPrice) list = list.filter(function (p) { return p.price >= Number(shopState.minPrice); });
-  if (shopState.maxPrice) list = list.filter(function (p) { return p.price <= Number(shopState.maxPrice); });
+  if (shopState.minPrice) list = list.filter(function (p) { return Number(p.price) >= Number(shopState.minPrice); });
+  if (shopState.maxPrice) list = list.filter(function (p) { return Number(p.price) <= Number(shopState.maxPrice); });
 
   switch (shopState.sort) {
     case "price-asc": list.sort(function (a, b) { return a.price - b.price; }); break;
     case "price-desc": list.sort(function (a, b) { return b.price - a.price; }); break;
-    case "name": list.sort(function (a, b) { return a.name.localeCompare(b.name, "ar"); }); break;
-    default: break; 
+    case "name": list.sort(function (a, b) { return (a.name || "").localeCompare((b.name || ""), "ar"); }); break;
+    default: break;
   }
 
   const subCatContainerId = "subCategoryScroller";
   let subCatContainer = document.getElementById(subCatContainerId);
-  
   if (shopState.categoryId !== "all" && !shopState.filterMode) {
-      const currentCat = Store.getCategories().find(c => c.id === shopState.categoryId);
-      const parentId = currentCat ? (currentCat.parentId || currentCat.id) : null;
-      if (parentId) {
-          const subCats = Store.getCategories().filter(c => c.parentId === parentId);
-          if (subCats.length > 0) {
-              if (!subCatContainer) {
-                  subCatContainer = document.createElement("div");
-                  subCatContainer.id = subCatContainerId;
-                  subCatContainer.className = "cat-scroller";
-                  subCatContainer.style.marginBottom = "10px";
-                  subCatContainer.style.padding = "10px 0";
-                             subCatContainer.style.position = "sticky";
-              const headerElForOffset = document.querySelector(".site-header");
-              subCatContainer.style.top = (headerElForOffset ? headerElForOffset.offsetHeight : 75) + "px";
-                  subCatContainer.style.zIndex = "40"; 
-                  subCatContainer.style.backgroundColor = "#fefcf4"; 
-                  const grid = document.getElementById("shopGrid");
-                  if (grid && grid.parentNode) grid.parentNode.insertBefore(subCatContainer, grid);
-              }
-              let subHtml = '<button class="filter-chip ' + (shopState.categoryId === parentId ? 'active' : '') + '" onclick="updateCategory(\'' + parentId + '\')">الكل</button>';
-              subHtml += subCats.map(sub => { return '<button class="filter-chip ' + (shopState.categoryId === sub.id ? 'active' : '') + '" onclick="updateCategory(\'' + sub.id + '\')">' + sub.name + '</button>'; }).join('');
-              subCatContainer.innerHTML = subHtml;
-              subCatContainer.style.display = "flex";
-          } else if (subCatContainer) subCatContainer.style.display = "none";
-      }
+    const currentCat = Store.getCategories().find(function(c) { return c.id === shopState.categoryId; });
+    const parentId = currentCat ? (currentCat.parentId || currentCat.id) : null;
+    if (parentId) {
+      const subCats = Store.getCategories().filter(function(c) { return c.parentId === parentId; });
+      if (subCats.length > 0) {
+        if (!subCatContainer) {
+          subCatContainer = document.createElement("div");
+          subCatContainer.id = subCatContainerId;
+          subCatContainer.className = "cat-scroller";
+          subCatContainer.style.marginBottom = "10px";
+          subCatContainer.style.padding = "10px 0";
+          subCatContainer.style.position = "sticky";
+          const headerElForOffset = document.querySelector(".site-header");
+          subCatContainer.style.top = (headerElForOffset ? headerElForOffset.offsetHeight : 75) + "px";
+          subCatContainer.style.zIndex = "40";
+          subCatContainer.style.backgroundColor = "#fefcf4";
+          const grid = document.getElementById("shopGrid");
+          if (grid && grid.parentNode) grid.parentNode.insertBefore(subCatContainer, grid);
+        }
+        let subHtml = '<button class="filter-chip ' + (shopState.categoryId === parentId ? 'active' : '') + '" onclick="updateCategory(\'' + parentId + '\')">الكل</button>';
+        subHtml += subCats.map(function(sub) { return '<button class="filter-chip ' + (shopState.categoryId === sub.id ? 'active' : '') + '" onclick="updateCategory(\'' + sub.id + '\')">' + sub.name + '</button>'; }).join('');
+        subCatContainer.innerHTML = subHtml;
+        subCatContainer.style.display = "flex";
+      } else if (subCatContainer) subCatContainer.style.display = "none";
+    }
   } else if (subCatContainer) subCatContainer.style.display = "none";
 
   let emptyMsg = "لا توجد منتجات مطابقة لبحثك — جرّب تغيير الفلاتر.";
@@ -256,19 +382,31 @@ function renderShopResults() {
 
   renderGridInto("shopGrid", list, emptyMsg);
   const countEl = document.getElementById("resultCount");
-  if (countEl) countEl.textContent = list.length + " منتج";
+  if (countEl) countEl.textContent = (shopState.pagination.done ? list.length : list.length + "+") + " منتج";
+
+  const sentinel = document.getElementById("shopLoadMoreSentinel");
+  if (sentinel) sentinel.style.display = shopState.pagination.done ? "none" : "block";
 }
 
-function initHomeCollections() {
+async function loadNextShopPage() {
+  if (shopState.pagination.loading || shopState.pagination.done) return;
+  await renderShopResults();
+}
+async function initHomeCollections() {
   const featuredEl = document.getElementById("featuredGrid");
   const offerEl = document.getElementById("offerGrid"); 
   const newEl = document.getElementById("newGrid");
   const catEl = document.getElementById("homeCategories");
-  const products = Store.getProducts();
 
-  if (featuredEl) renderGridInto("featuredGrid", products.filter(function (p) { return p.featured; }).slice(0, 4), "لا توجد منتجات مميزة حاليًا.");
-  if (offerEl) renderGridInto("offerGrid", products.filter(function (p) { return p.isOffer; }).slice(0, 4), "لا توجد عروض حاليًا.");
-  if (newEl) renderGridInto("newGrid", products.filter(function (p) { return p.isNew; }).slice(0, 4), "لا توجد منتجات جديدة حاليًا.");
+  // الصفحة الرئيسية تجلب فقط المنتجات التي تحمل العلامة المطلوبة، وليس كل /products.
+  const results = await Promise.all([
+    Store.loadProductsPageByField("featured", true, 4, null),
+    Store.loadProductsPageByField("isOffer", true, 4, null),
+    Store.loadProductsPageByField("isNew", true, 4, null)
+  ]);
+  if (featuredEl) renderGridInto("featuredGrid", results[0].products, "لا توجد منتجات مميزة حاليًا.");
+  if (offerEl) renderGridInto("offerGrid", results[1].products, "لا توجد عروض حاليًا.");
+  if (newEl) renderGridInto("newGrid", results[2].products, "لا توجد منتجات جديدة حاليًا.");
   
   if (catEl) {
     const categories = Store.getCategories();
@@ -280,12 +418,12 @@ function initHomeCollections() {
   }
 }
 
-function initProductDetailPage() {
+async function initProductDetailPage() {
   const mount = document.getElementById("productDetail");
   if (!mount) return;
 
   const id = new URLSearchParams(location.search).get("id");
-  const product = id ? Store.getProduct(id) : null;
+  const product = id ? await Store.loadProductById(id) : null;
 
   if (!product) {
     mount.innerHTML = '<div class="empty-state">' + iconSvg("box") + "<p>هذا المنتج غير موجود أو تم حذفه.</p>" + '<a href="products.html" class="btn btn-outline">العودة إلى المتجر</a></div>';
@@ -552,7 +690,9 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 document.addEventListener("store:synced", function () {
   initHomeCollections();
-  renderCategoryFilterPanel();
-  renderShopResults();
-  initProductDetailPage();
+  if (document.getElementById("shopGrid")) {
+    renderCategoryFilterPanel();
+    renderShopResults({ reset: true });
+  }
+  if (document.getElementById("productDetail")) initProductDetailPage();
 });

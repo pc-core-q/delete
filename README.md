@@ -33,7 +33,7 @@ JavaScript خالص، يعمل مباشرة بفتح الملفات في الم�
 /js/auth.js          تسجيل دخول الأدمن وحماية لوحة التحكم
 /js/admin.js         لوحة التحكم بالكامل (منتجات/أقسام/ألوان/مقاسات/طلبات/إعدادات)
 
-/assets/logo/logo.svg   شعار عام مؤقت — استبدله بشعار متجرك
+/assets/logo/logo.png   شعار عام مؤقت — استبدله بشعار متجرك
 ```
 
 ## كيف تشغّل الموقع
@@ -68,3 +68,20 @@ JavaScript خالص، يعمل مباشرة بفتح الملفات في الم�
 
 جميع الأسعار مخزّنة كأرقام صحيحة وتُنسَّق تلقائيًا عند العرض. رمز العملة
 (`currencySymbol`) قابل للتغيير من الإعدادات، الافتراضي `د.ع`.
+
+## Firebase Authentication (Admin)
+
+The admin login now uses Firebase Authentication (Email/Password) instead of storing an admin username/password in localStorage.
+
+### One-time setup per store
+1. In Firebase Console, open the store's Firebase project.
+2. Go to **Authentication → Sign-in method → Email/Password** and enable it.
+3. Go to **Project settings → Your apps → Web app**. If a Web app does not exist, create one.
+4. Copy the Web app configuration into `js/config.js` (`firebaseApiKey`, `firebaseAuthDomain`, `firebaseProjectId`, `firebaseStorageBucket`, `firebaseMessagingSenderId`, `firebaseAppId`).
+5. Create the admin user under **Authentication → Users**.
+6. Put that exact email in `STORE_CONFIG.adminEmails`.
+7. Test `login.html`.
+
+Important: `adminEmails` is only a client-side UI allow-list in this phase. It is **not** the final authorization boundary. Firebase Realtime Database Security Rules will be added in the next phase and must enforce admin permissions server-side.
+
+If the Web App/Auth values are still empty, the public store can continue using Realtime Database, but the admin login will not work until Authentication is configured.

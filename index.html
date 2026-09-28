@@ -9,7 +9,7 @@
   <title>الرئيسية | متجرك الإلكتروني</title>
   <meta name="description" content="تصفّح منتجاتنا واطلب مباشرة عبر واتساب بسهولة وسرعة.">
   <link rel="icon" href="assets/logo/logo.png">
-  <link rel="stylesheet" href="css/style.css?v=28">
+  <link rel="stylesheet" href="css/style.css?v=30">
 <style>
   /* === التعديلات التنسيقية وسلايدر العروض الترويجية === */
   .hero-art { background: none !important; box-shadow: none !important; border-radius: 0 !important; width: 100% !important; }
@@ -210,7 +210,7 @@
 <script src="js/icons.js?v=28"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="js/store.js"></script>
+<script src="js/store.js?v=29"></script>
 <script src="js/whatsapp.js?v=28"></script>
 <script src="js/app.js?v=28"></script>
 <script>
@@ -284,7 +284,7 @@
     el.innerHTML = products.map(renderHomeProductCard).join("");
   }
 
-  function renderAllHomeContent() {
+  async function renderAllHomeContent() {
     // 1. أيقونات قسم المميزات
     const featureGrid = document.querySelector(".feature-grid");
     if (featureGrid && typeof iconSvg === "function") {
@@ -317,11 +317,16 @@
       }).join("");
     }
 
-    // 4. رسم المنتجات (مميزة، عروض، جديدة)
-    const products = Store.getProducts();
-    renderGridInto("featuredGrid", products.filter(function (p) { return p.featured; }).slice(0, 8), "لا توجد منتجات مميزة حاليًا.");
-    renderGridInto("offerGrid", products.filter(function (p) { return p.isOffer; }).slice(0, 8), "لا توجد عروض وتخفيضات حاليًا.");
-    renderGridInto("newGrid", products.filter(function (p) { return p.isNew; }).slice(0, 8), "لا توجد منتجات جديدة حاليًا.");
+    // 4. رسم المنتجات: الصفحة الرئيسية تجلب فقط المميزة/العروض/الجديدة.
+    // لا يتم تحميل /products بالكامل عند دخول الموقع.
+    const homeResults = await Promise.all([
+      Store.loadProductsByField("featured", false, "featured"),
+      Store.loadProductsByField("isOffer", false, "offers"),
+      Store.loadProductsByField("isNew", false, "new")
+    ]);
+    renderGridInto("featuredGrid", homeResults[0].slice(0, 8), "لا توجد منتجات مميزة حاليًا.");
+    renderGridInto("offerGrid", homeResults[1].slice(0, 8), "لا توجد عروض وتخفيضات حاليًا.");
+    renderGridInto("newGrid", homeResults[2].slice(0, 8), "لا توجد منتجات جديدة حاليًا.");
 
     // 5. رسم سلايدر الإعلانات
     renderAdsSlider();

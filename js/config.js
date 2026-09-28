@@ -29,10 +29,17 @@ const STORE_CONFIG = {
 
   currencySymbol: "د.ع",
 
-  // بيانات دخول الأدمن الافتراضية — قيمة أولية فقط لتتمكن من الدخول أول مرة.
-  // غيّرها فورًا من تبويب "الإعدادات" في لوحة التحكم بعد أول دخول.
-  adminUsername: "a",
-  adminPassword: "aaaa",
+  // === Firebase Web App / Authentication ===
+  // هذه القيم تُؤخذ من Firebase Console > Project settings > Your apps > Web app.
+  firebaseApiKey: "AIzaSyAnAHTDxGlWwBfe9Ta8ttQ8QZWLA5ZNYw8",
+  firebaseAuthDomain: "test3-2a6de.firebaseapp.com",
+  firebaseProjectId: "test3-2a6de",
+  firebaseStorageBucket: "test3-2a6de.firebasestorage.app",
+  firebaseMessagingSenderId: "44087547093",
+  firebaseAppId: "1:44087547093:web:91a03c47e7810869fbfe5c",
+  // بريد/عناوين حسابات الأدمن المسموح لها بدخول الواجهة.
+  // هذا ليس بديلًا عن Security Rules؛ سنضيفها في المرحلة التالية.
+  adminEmails: ["a@email.com"],
 
   // === Firebase Realtime Database (اختياري) ===
   // اتركه فارغًا للعمل بدون مزامنة سحابية (localStorage فقط، مناسب كنسخة

@@ -9,7 +9,7 @@
 <meta http-equiv="Expires" content="0">
 <title>لوحة تحكم الأدمن | متجرك الإلكتروني</title>
   <link rel="icon" href="assets/logo/logo.png">
-  <link rel="stylesheet" href="css/style.css?v=6">
+  <link rel="stylesheet" href="css/style.css?v=30">
 <style>
   /* === 1. جدار الحماية ضد تمدد الصفحة === */
   html, body {
@@ -224,10 +224,7 @@
           <div class="field"><label>رمز العملة</label><input name="currencySymbol"></div>
 
           <hr style="border:none;border-top:1px solid var(--line);margin:22px 0;">
-          <h4 style="margin-bottom:14px;">بيانات دخول الأدمن</h4>
-          <div class="field"><label>اسم المستخدم</label><input name="adminUsername" required></div>
-          <div class="field"><label>كلمة مرور جديدة (اتركها فارغة لعدم التغيير)</label><input type="password" name="newPassword"></div>
-          <div class="field"><label>تأكيد كلمة المرور الجديدة</label><input type="password" name="confirmPassword"></div>
+          <div class="field-hint">تسجيل دخول الأدمن تتم إدارته الآن عبر Firebase Authentication. تغيير كلمة المرور يتم من حساب Firebase، وليس من بيانات المتجر.</div>
 
           <button type="submit" class="btn btn-primary btn-block">حفظ الإعدادات</button>
         </form>
@@ -366,8 +363,9 @@
 <script src="js/config.js"></script>
 <script src="js/icons.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="js/store.js"></script>
+<script src="js/store.js?v=29"></script>
 <script src="js/whatsapp.js"></script>
 <script src="js/app.js"></script>
 <script src="js/auth.js?v=10"></script>

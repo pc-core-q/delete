@@ -59,7 +59,7 @@ project/
 │
 └── assets/
     └── logo/
-        └── logo.svg      Generic placeholder logo — replace with your own
+        └── logo.png      Store logo used by the current design
 ```
 
 Notes on structure:
@@ -127,7 +127,10 @@ UI (index/products/product/cart/admin .html + their .js)
 | `ws_ads`         | Array of homepage advertisement banner objects        |
 | `ws_admin_session` | `sessionStorage` flag set on successful admin login |
 | `ws_seeded_v1`   | Flag preventing re-seeding on every page load         |
-| `last_pull_time` | Firebase pull cooldown timestamp (15 min cache)       |
+| `last_meta_pull_time` | Firebase metadata pull cooldown timestamp (15 min cache) |
+| `ws_products_category_*` | Cached products for an individual category |
+| `ws_products_filter_*` | Cached featured/offer/new product results |
+| `ws_products_all_time` | Timestamp for full-catalog cache (admin/search) |
 
 ### 4.2 First-run seeding (`seedIfNeeded()` in `store.js`)
 
@@ -146,24 +149,39 @@ starts completely empty and is populated entirely from the admin panel.
 
 - `store.js` checks `STORE_CONFIG.firebaseDatabaseURL` at load time. If
   empty (the default), `firebaseEnabled` stays `false` and every sync
-  function (`syncNodeToFirebase`, `fetchNode`, `pullFromFirebase`) becomes a
-  safe no-op. The site runs 100% on `localStorage` in this mode.
-- If a URL is provided, `firebase.initializeApp({ databaseURL: ... })` runs,
-  and:
-  - `pullFromFirebase()` (called once per page load) pulls
-    `products`/`categories`/`settings`/`ads` from Firebase into
-    `localStorage`, with a 15-minute cooldown cache (`last_pull_time`) to
-    limit reads. Orders are only pulled when an admin session is active.
-  - Every `Store.save*()` method also calls `syncNodeToFirebase(...)` to
-    push the updated array/object back up.
-  - If Firebase has no data yet at all (`products === null && categories
-    === null`), the current localStorage content is pushed up once to
-    initialize the remote database.
-- **This template intentionally does not ship with a Firebase project.**
-  You must create your own Realtime Database and put its URL in
-  `firebaseDatabaseURL`. See section 9 for setup steps and security notes.
+  function becomes a safe no-op. The site runs 100% on `localStorage` in this mode.
+- If a URL is provided, `firebase.initializeApp({ databaseURL: ... })` runs.
+- During normal public storefront page loads, `pullFromFirebase()` pulls only
+  lightweight metadata: `categories`, `settings`, and `ads`. **It does not
+  download the complete `/products` node.**
+- Products are loaded on demand:
+  - category pages query `/products` with `orderByChild("categoryId").equalTo(...)`;
+  - a product-detail page queries only the requested product by its `id`;
+  - featured/offers/new sections query only products matching their respective
+    boolean field;
+  - the cart fetches only product records currently present in the cart.
+- The complete `/products` node is loaded only when the admin dashboard needs
+  the full catalog, when the visitor explicitly chooses “all products”, or when
+  the visitor explicitly performs a global search.
+- Public product queries are cached locally for 15 minutes, reducing repeated
+  reads while preserving the section-based loading behavior.
+- Every `Store.save*()` method also calls `syncNodeToFirebase(...)` to push
+  updated data.
+- **Important:** Firebase access is client-side; configure appropriate
+  Realtime Database security rules before production use.
 
-### 4.4 Cart data flow
+### 4.4 Product loading strategy (important for Firebase bandwidth)
+
+The storefront is intentionally **section-based** rather than downloading every
+product when the visitor opens the site. Opening a category loads only that
+category (and its direct subcategories when applicable). The homepage requests
+only featured, offer, and new products. The cart requests only its own product
+records.
+
+The “all products” view, admin dashboard, and explicit global search are
+intentional exceptions because they require access to the complete catalog.
+
+### 4.5 Cart data flow
 
 `Store.addToCart(itemKey, qty, meta)` → `Store.getCart()` /
 `Store.setQty()` / `Store.removeFromCart()` → `cart:updated` custom event →
@@ -456,9 +474,9 @@ except where noted, e.g. `product.html`'s `<title>` is set dynamically by
 1. Copy the whole project folder.
 2. Edit `js/config.js`: store name/tagline/description, contact info, and
    (optionally) Firebase/ImgBB/ImageKit credentials.
-3. Replace `assets/logo/logo.svg` with your real logo (keep the same
+3. Replace `assets/logo/logo.png` with your real logo (keep the same
    filename to avoid touching every HTML file, or update all
-   `assets/logo/logo.svg` references if you rename it).
+   `assets/logo/logo.png` references if you rename it).
 4. Update the static `<title>` / meta description in each HTML file's
    `<head>` (see section 12).
 5. Deploy the folder as-is to any static host (see README.md).
@@ -517,3 +535,13 @@ except where noted, e.g. `product.html`'s `<title>` is set dynamically by
   checkout.
 - Dynamic, settings-driven `<title>`/meta tags on every page instead of
   static per-page text.
+
+### Public product pagination (Firebase)
+- The public storefront does not download `/products` in one request during normal browsing.
+- Category/product listings use Firebase pagination with a default page size of 20 products.
+- More products are fetched automatically with `IntersectionObserver` when the visitor approaches the end of the grid.
+- Main categories with subcategories keep a separate Firebase cursor per category so pagination does not require downloading the entire catalog.
+- The homepage requests only a small first batch (4) for Featured, Offers, and New Products.
+- Product detail requests only the requested product when it is not already cached locally.
+- Full-catalog loading remains available for the admin dashboard and for explicit catalog-wide operations such as search/advanced filtering, because Realtime Database cannot perform arbitrary substring search efficiently.
+- `SHOP_PAGE_SIZE` in `js/products.js` controls the public page size and can be changed from 20 to 30 if desired.

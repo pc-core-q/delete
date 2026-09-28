@@ -15,10 +15,13 @@ let pendingColors = [];      // [{ name, hex, image }]
 let pendingSizes = [];       // ["S", "M", ...]
 let pendingInventory = {};   // { "لون||مقاس": qty }
 
-function initAdminPage() {
+async function initAdminPage() {
   const app = document.getElementById("adminApp");
   if (!app) return;
   if (!requireAdminAuth()) return;
+
+  // لوحة الأدمن تحتاج القائمة الكاملة، بينما المتجر العام لا يسحبها.
+  await Store.loadAllProductsFromFirebase();
 
   wireSidebarNav();
   document.getElementById("adminLogoutBtn").addEventListener("click", handleAdminLogout);
@@ -944,7 +947,6 @@ function fillSettingsForm() {
   form.workingHours.value = s.workingHours || "";
   form.deliveryInfo.value = s.deliveryInfo || "";
   form.currencySymbol.value = s.currencySymbol || "د.ع";
-  form.adminUsername.value = s.adminUsername || "";
 }
 
 function wireSettingsForm() {
@@ -964,27 +966,10 @@ function wireSettingsForm() {
       address: form.address.value.trim(),
       workingHours: form.workingHours.value.trim(),
       deliveryInfo: form.deliveryInfo.value.trim(),
-      currencySymbol: form.currencySymbol.value.trim() || "د.ع",
-      adminUsername: form.adminUsername.value.trim() || Store.getSettings().adminUsername
+      currencySymbol: form.currencySymbol.value.trim() || "د.ع"
     };
 
-    const newPassword = form.newPassword.value;
-    const confirmPassword = form.confirmPassword.value;
-    if (newPassword || confirmPassword) {
-      if (newPassword.length < 4) {
-        showToast("كلمة المرور الجديدة قصيرة جدًا (4 أحرف على الأقل)");
-        return;
-      }
-      if (newPassword !== confirmPassword) {
-        showToast("كلمتا المرور غير متطابقتين");
-        return;
-      }
-      patch.adminPassword = newPassword;
-    }
-
     Store.saveSettings(patch);
-    form.newPassword.value = "";
-    form.confirmPassword.value = "";
     showToast("تم حفظ الإعدادات بنجاح");
   });
 }

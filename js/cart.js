@@ -139,9 +139,15 @@ function removeCartLine(itemKey) {
   renderCartPage();
 }
 
-function initCartPage() {
+async function initCartPage() {
   const checkoutBtn = document.getElementById("checkoutBtn");
   if (!checkoutBtn) return;
+
+  // السلة لا تحتاج كل المنتجات؛ نجلب فقط المنتجات الموجودة فعليًا في السلة.
+  const cartLines = Store.getCart();
+  if (cartLines.length && typeof Store.loadProductById === "function") {
+    await Promise.all(cartLines.map(function(line) { return Store.loadProductById(line.productId); }));
+  }
   checkoutBtn.addEventListener("click", function () {
     if (!Store.getCart().length) return;
     if (!isWhatsAppConfigured()) {

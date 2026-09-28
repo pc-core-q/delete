@@ -322,11 +322,11 @@
       }).join("");
     }
 
-    // 4. رسم المنتجات: الصفحة الرئيسية تجلب فقط المميزة/العروض/الجديدة.
+  // 4. رسم المنتجات: الصفحة الرئيسية تجلب فقط المميزة/العروض/الجديدة.
     const homeResults = await Promise.all([
-      Store.loadProductsByField("featured", false, "featured"),
-      Store.loadProductsByField("isOffer", false, "offers"),
-      Store.loadProductsByField("isNew", false, "new")
+      Store.loadProductsByField("featured", true, "featured", true),
+      Store.loadProductsByField("isOffer", true, "offers", true),
+      Store.loadProductsByField("isNew", true, "new", true)
     ]);
     renderGridInto("featuredGrid", homeResults[0].slice(0, 8), "لا توجد منتجات مميزة حاليًا.");
     renderGridInto("offerGrid", homeResults[1].slice(0, 8), "لا توجد عروض وتخفيضات حاليًا.");

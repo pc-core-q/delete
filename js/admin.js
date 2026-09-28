@@ -1,7 +1,7 @@
 /* ==========================================================================
    admin.js
    منطق لوحة تحكم الأدمن بالكامل (admin.html). 
-   تم التحديث: حل مشكلة عدم ظهور الصورة بعد الرفع وإزالة الفحص المسبب للتأخير.
+   تم التحديث: إزالة قسم الخيارات القديم بالكامل، إصلاح تداخل الألوان، وإضافة منطق القائمة الجانبية.
    ========================================================================== */
 
 let editingProductId = null;
@@ -10,7 +10,6 @@ let editingAdId = null;
 let pendingProductImage = null; 
 let pendingCategoryImage = null; 
 let pendingAdImage = null; 
-let pendingVariantImages = {};
 let pendingColors = [];      // [{ name, hex, image }]
 let pendingSizes = [];       // ["S", "M", ...]
 let pendingInventory = {};   // { "لون||مقاس": qty }
@@ -25,11 +24,11 @@ async function initAdminPage() {
 
   wireSidebarNav();
   document.getElementById("adminLogoutBtn").addEventListener("click", handleAdminLogout);
+  
+  // زر الهامبرغر لفتح القائمة الجانبية (إذا كان موجوداً)
   const sidebarToggle = document.getElementById("adminSidebarToggle");
   if (sidebarToggle) {
-    sidebarToggle.addEventListener("click", function () {
-      document.querySelector(".admin-sidebar").classList.toggle("open");
-    });
+    sidebarToggle.addEventListener("click", toggleAdminSidebar);
   }
 
   renderStats();
@@ -75,19 +74,18 @@ async function uploadToImgBB(file, isBanner = false) {
       throw new Error((data.error && data.error.message) || "فشل رفع الصورة إلى ImgBB.");
     }
 
-    const rawUrl = data.data.url; // مثال: https://i.ibb.co/xyz/image.png
+    const rawUrl = data.data.url;
 
     const imageKitEndpoint = (typeof STORE_CONFIG !== "undefined" && STORE_CONFIG.imageKitEndpoint || "").trim();
 
-    // إن لم يتم إعداد ImageKit، نستخدم رابط ImgBB مباشرة (يعمل بشكل طبيعي، فقط بدون تحسينات CDN)
+    // إن لم يتم إعداد ImageKit، نستخدم رابط ImgBB مباشرة
     if (!imageKitEndpoint) {
       return rawUrl;
     }
 
-    // 2. معالجة الرابط ببساطة وأمان
-    let cleanPath = rawUrl.replace(/^https?:\/\//i, ""); // مسح http:// أو https://
+    // 2. معالجة الرابط بأمان
+    let cleanPath = rawUrl.replace(/^https?:\/\//i, "");
 
-    // إزالة i.ibb.co سواء كان مع شرطة مائلة أو بدونها
     if (cleanPath.startsWith("i.ibb.co/")) {
       cleanPath = cleanPath.substring("i.ibb.co/".length);
     }
@@ -100,12 +98,12 @@ async function uploadToImgBB(file, isBanner = false) {
     // 4. بناء الرابط النهائي عبر ImageKit CDN
     const cdnUrl = `${imageKitEndpoint}/${transform}/${cleanPath}`;
 
-    // 5. إرجاع الرابط مباشرة ليتم حفظه
+    // 5. إرجاع الرابط
     return cdnUrl;
 }
 
 /* ---------------------------------------------------------------------- */
-/* التنقّل بين الأقسام                                                     */
+/* التنقّل بين الأقسام وإدارة القائمة الجانبية                            */
 /* ---------------------------------------------------------------------- */
 
 function wireSidebarNav() {
@@ -116,10 +114,25 @@ function wireSidebarNav() {
       btn.classList.add("active");
       document.querySelectorAll(".admin-panel-view").forEach(function (p) { p.style.display = "none"; });
       document.getElementById("panel-" + btn.dataset.panel).style.display = "block";
-      document.querySelector(".admin-sidebar").classList.remove("open");
+      
+      // إغلاق القائمة الجانبية بعد اختيار القسم (للموبايل أو القائمة المسحوبة)
+      const sidebar = document.querySelector(".admin-sidebar");
+      const overlay = document.querySelector(".sidebar-overlay");
+      if (sidebar) sidebar.classList.remove("active", "open");
+      if (overlay) overlay.classList.remove("active");
     });
   });
 }
+
+// دالة لفتح وإغلاق القائمة الجانبية للأدمن
+window.toggleAdminSidebar = function() {
+  const sidebar = document.querySelector('.admin-sidebar');
+  const overlay = document.querySelector('.sidebar-overlay');
+  
+  // استخدام open بدلاً من active ليتطابق مع الـ CSS الخاص بلوحة الأدمن
+  if (sidebar) sidebar.classList.toggle('open');
+  if (overlay) overlay.classList.toggle('active');
+};
 
 /* ---------------------------------------------------------------------- */
 /* لوحة الإحصائيات                                                        */
@@ -207,68 +220,8 @@ function populateCategorySelect() {
   }).join("");
 }
 
-/* ---- مودال إضافة/تعديل منتج ---- */
-
-function renderVariantImageUploaders(variantsArr) {
-  const wrap = document.getElementById("variantImagesWrap");
-  const list = document.getElementById("variantImagesList");
-  if (!wrap || !list) return;
-
-  if (variantsArr.length === 0) {
-    wrap.style.display = "none";
-    list.innerHTML = "";
-    return;
-  }
-
-  wrap.style.display = "block";
-  let html = "";
-  variantsArr.forEach((v, idx) => {
-    const existingImg = pendingVariantImages[v] || "";
-    html += `
-      <div style="display:flex; align-items:center; gap:10px; background:var(--olive-50); padding:10px; border-radius:8px; border:1px solid var(--line);">
-        <div style="flex:1; font-weight:bold; font-size:0.85rem;">صورة خيار: ${v}</div>
-        <div class="image-upload" style="margin:0;">
-          <div class="preview" id="preview_var_${idx}" style="width:40px; height:40px;">
-            ${existingImg ? '<img src="' + existingImg + '">' : iconSvg("box")}
-          </div>
-          <input type="file" id="file_var_${idx}" accept="image/*" data-variant="${v}">
-        </div>
-        ${existingImg ? `<button type="button" class="btn-icon btn-sm" style="color:var(--danger); width:32px; height:32px;" onclick="removeVariantImage('${v}')">${iconSvg("trash")}</button>` : ''}
-      </div>`;
-  });
-  list.innerHTML = html;
-
-  variantsArr.forEach((v, idx) => {
-    const input = document.getElementById(`file_var_${idx}`);
-    if(input) {
-      input.addEventListener("change", async function() {
-        const file = this.files[0];
-        if(!file) return;
-        try {
-          showToast(`جاري رفع صورة (${v})...`);
-          const imageUrl = await uploadToImgBB(file, false);
-          pendingVariantImages[v] = imageUrl;
-          showToast(`تم رفع الصورة بنجاح!`);
-          renderVariantImageUploaders(variantsArr);
-        } catch(error) {
-          showToast("فشل رفع الصورة. تأكد من الإنترنت.");
-        }
-      });
-    }
-  });
-}
-
-window.removeVariantImage = function(variantName) {
-  delete pendingVariantImages[variantName];
-  const variantsInput = document.getElementById("productVariants");
-  if (variantsInput) {
-      const variantsArr = variantsInput.value.split(',').map(v => v.trim()).filter(v => v.length > 0);
-      renderVariantImageUploaders(variantsArr);
-  }
-};
-
 /* ---------------------------------------------------------------------- */
-/* الألوان + المقاسات + المخزون لكل تركيبة (اختياري، مناسب لمنتجات الملابس) */
+/* الألوان + المقاسات + المخزون لكل تركيبة (مناسب لمنتجات الملابس)        */
 /* ---------------------------------------------------------------------- */
 
 function currentSizesFromInput() {
@@ -284,16 +237,35 @@ function renderColorsList() {
   if (!pendingColors.length) {
     list.innerHTML = '<p class="field-hint" style="margin:0;">لا يوجد ألوان مضافة. اضغط "+ إضافة لون" إن كان المنتج يحتاج تمييزًا بالألوان.</p>';
   } else {
+    // بناء HTML للألوان باستخدام Flexbox لتجنب التداخل
     list.innerHTML = pendingColors.map(function (c, idx) {
       return (
-        '<div style="display:flex;align-items:center;gap:8px;background:var(--olive-50);padding:10px;border-radius:8px;border:1px solid var(--line);">' +
-          '<input type="text" placeholder="اسم اللون (مثال: أسود)" value="' + (c.name || "") + '" data-color-idx="' + idx + '" class="color-name-input" style="flex:1;min-width:0;">' +
-          '<input type="color" value="' + (c.hex || "#7c9a4c") + '" data-color-idx="' + idx + '" class="color-hex-input" style="width:36px;height:36px;padding:0;border:none;">' +
-          '<div class="image-upload" style="margin:0;">' +
-            '<div class="preview" id="colorImgPreview_' + idx + '" style="width:36px;height:36px;">' + (c.image ? '<img src="' + c.image + '">' : iconSvg("box")) + '</div>' +
-            '<input type="file" accept="image/*" class="color-image-input" data-color-idx="' + idx + '" style="width:80px;">' +
+        '<div class="color-row" style="display:flex;flex-wrap:wrap;align-items:center;gap:15px;background:var(--olive-50);padding:15px;border-radius:8px;border:1px solid var(--line);margin-bottom:10px;">' +
+          
+          '<div style="flex:1;min-width:140px;display:flex;flex-direction:column;gap:5px;">' +
+            '<label style="font-size:0.8rem;color:var(--ink-400);">اسم اللون</label>' +
+            '<input type="text" placeholder="مثال: أسود" value="' + (c.name || "") + '" data-color-idx="' + idx + '" class="color-name-input" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;background:#fff;">' +
           '</div>' +
-          '<button type="button" class="btn-icon btn-sm" style="color:var(--danger);" title="حذف اللون" onclick="removeColorRow(' + idx + ')">' + iconSvg("trash") + '</button>' +
+          
+          '<div style="display:flex;flex-direction:column;gap:5px;align-items:center;">' +
+            '<label style="font-size:0.8rem;color:var(--ink-400);">الدرجة</label>' +
+            '<input type="color" value="' + (c.hex || "#7c9a4c") + '" data-color-idx="' + idx + '" class="color-hex-input" style="width:38px;height:38px;padding:0;border:none;cursor:pointer;border-radius:50%;">' +
+          '</div>' +
+          
+          '<div class="image-upload" style="margin:0;display:flex;flex-direction:column;gap:5px;min-width:120px;">' +
+            '<label style="font-size:0.8rem;color:var(--ink-400);">صورة اللون (اختياري)</label>' +
+            '<div style="display:flex;align-items:center;gap:10px;">' +
+              '<div class="preview" id="colorImgPreview_' + idx + '" style="width:38px;height:38px;border-radius:6px;overflow:hidden;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;background:#fff;">' + 
+                (c.image ? '<img src="' + c.image + '" style="width:100%;height:100%;object-fit:cover;">' : iconSvg("box")) + 
+              '</div>' +
+              '<input type="file" accept="image/*" class="color-image-input" data-color-idx="' + idx + '" style="width:90px;font-size:0.8rem;">' +
+            '</div>' +
+          '</div>' +
+          
+          '<div style="display:flex;align-items:flex-end;height:100%;padding-bottom:2px;">' +
+            '<button type="button" class="btn-icon btn-sm" style="color:var(--danger);background:#fee2e2;border-radius:6px;width:38px;height:38px;" title="حذف اللون" onclick="removeColorRow(' + idx + ')">' + iconSvg("trash") + '</button>' +
+          '</div>' +
+          
         '</div>'
       );
     }).join("");
@@ -395,6 +367,8 @@ function updateComputedStock() {
   stockInput.value = total;
 }
 
+/* ---- مودال إضافة/تعديل منتج ---- */
+
 function wireProductModal() {
   const addBtn = document.getElementById("addProductBtn");
   if (addBtn) addBtn.addEventListener("click", function () { openProductModal(null); });
@@ -435,14 +409,6 @@ function wireProductModal() {
     });
   }
 
-  const variantsInput = document.getElementById("productVariants");
-  if (variantsInput) {
-    variantsInput.addEventListener("input", function () {
-      const variantsArr = this.value.split(',').map(v => v.trim()).filter(v => v.length > 0);
-      renderVariantImageUploaders(variantsArr);
-    });
-  }
-
   const addColorBtn = document.getElementById("addColorBtn");
   if (addColorBtn) {
     addColorBtn.addEventListener("click", function () {
@@ -460,7 +426,6 @@ function wireProductModal() {
 function openProductModal(productId) {
   editingProductId = productId;
   pendingProductImage = null;
-  pendingVariantImages = {};
   pendingColors = [];
   pendingSizes = [];
   pendingInventory = {};
@@ -490,14 +455,6 @@ function openProductModal(productId) {
     pendingProductImage = p.image || null;
     preview.innerHTML = p.image ? '<img src="' + p.image + '">' : iconSvg("box");
 
-    pendingVariantImages = p.variantImages ? Object.assign({}, p.variantImages) : {};
-    if(document.getElementById("productVariants")) {
-        const variantsStr = p.variants && p.variants.length > 0 ? p.variants.join(", ") : "";
-        document.getElementById("productVariants").value = variantsStr;
-        const variantsArr = variantsStr.split(',').map(v => v.trim()).filter(v => v.length > 0);
-        renderVariantImageUploaders(variantsArr);
-    }
-
     pendingColors = (p.colors || []).map(function (c) { return Object.assign({}, c); });
     pendingSizes = (p.sizes || []).slice();
     pendingInventory = Object.assign({}, p.inventory || {});
@@ -507,11 +464,6 @@ function openProductModal(productId) {
     title.textContent = "إضافة منتج جديد";
     document.getElementById("productAvailable").checked = true;
     preview.innerHTML = iconSvg("box");
-    
-    if(document.getElementById("productVariants")) {
-        document.getElementById("productVariants").value = "";
-        renderVariantImageUploaders([]);
-    }
 
     if (document.getElementById("productSizes")) document.getElementById("productSizes").value = "";
     renderColorsList();
@@ -528,15 +480,7 @@ function closeProductModal() {
 function saveProductForm(e) {
   e.preventDefault();
   
-  const variantsStr = document.getElementById("productVariants") ? document.getElementById("productVariants").value : "";
-  const variantsArr = variantsStr.split(',').map(v => v.trim()).filter(v => v.length > 0);
-  
-  const cleanVariantImages = {};
-  variantsArr.forEach(v => {
-      if(pendingVariantImages[v]) cleanVariantImages[v] = pendingVariantImages[v];
-  });
-
-  // الألوان والمقاسات والمخزون لكل تركيبة (اختياري)
+  // الألوان والمقاسات والمخزون لكل تركيبة
   const cleanColors = pendingColors
     .filter(function (c) { return c.name && c.name.trim(); })
     .map(function (c) { return { name: c.name.trim(), hex: c.hex || "#7c9a4c", image: c.image || null }; });
@@ -570,8 +514,6 @@ function saveProductForm(e) {
     featured: document.getElementById("productFeatured").checked,
     isNew: document.getElementById("productNew").checked,
     isOffer: document.getElementById("productOffer") ? document.getElementById("productOffer").checked : false, 
-    variants: variantsArr, 
-    variantImages: cleanVariantImages,
     colors: cleanColors,
     sizes: cleanSizes,
     inventory: cleanInventory,
@@ -597,7 +539,7 @@ function saveProductForm(e) {
 }
 
 /* ---------------------------------------------------------------------- */
-/* الأقسام                                                                 */
+/* الأقسام                                                                */
 /* ---------------------------------------------------------------------- */
 
 function renderCategoriesTable() {
@@ -777,7 +719,7 @@ function saveCategoryForm(e) {
 }
 
 /* ---------------------------------------------------------------------- */
-/* الإعلانات                                                               */
+/* الإعلانات                                                              */
 /* ---------------------------------------------------------------------- */
 
 function renderAdsTable() {

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   products.js (النسخة 2.0 - دعم الأقسام الفرعية والخيارات - مع إصلاح شريط الأقسام)
+   products.js (النسخة 3.0 - تنقل سلس وفصل كامل للأقسام)
    ========================================================================== */
 
 function productMediaHtml(product) {
@@ -48,17 +48,11 @@ function renderProductCard(product) {
   );
 }
 
-function truncate(text, max) {
-  if (!text) return "";
-  return text.length > max ? text.slice(0, max).trim() + "…" : text;
-}
-
 function quickAddToCart(productId) {
   const product = Store.getProduct(productId);
   if (!product || !Store.isProductAvailable(product)) return;
   const hasOptions = (product.variants && product.variants.length > 0) || Store.hasVariantMatrix(product);
   if (hasOptions) {
-      // منتج له خيارات (لون/مقاس أو خيار نصي) — يجب اختيارها من صفحة التفاصيل
       window.location.href = 'product.html?id=' + productId;
       return;
   }
@@ -70,7 +64,7 @@ function renderGridInto(containerId, products, emptyMessage) {
   const el = document.getElementById(containerId);
   if (!el) return;
   if (!products.length) {
-    el.innerHTML = '<div class="empty-state">' + iconSvg("box") + "<p>" + (emptyMessage || "لا توجد منتجات لعرضها حاليًا.") + "</p></div>";
+    el.innerHTML = '<div class="empty-state" style="grid-column:1/-1;">' + iconSvg("box") + "<p>" + (emptyMessage || "لا توجد منتجات لعرضها حاليًا.") + "</p></div>";
     return;
   }
   el.innerHTML = products.map(renderProductCard).join("");
@@ -78,7 +72,7 @@ function renderGridInto(containerId, products, emptyMessage) {
 
 const SHOP_PAGE_SIZE = 20;
 const shopState = {
-  search: "", categoryId: "all", sort: "default", minPrice: "", maxPrice: "", filterMode: "", mobileMenuOpen: false,
+  search: "", categoryId: "all", sort: "default", minPrice: "", maxPrice: "", filterMode: "",
   pagination: { token: 0, loading: false, done: false, cursors: {}, sources: [], products: [] }
 };
 
@@ -129,8 +123,6 @@ function initShopPage() {
 
   const searchInput = document.getElementById("searchInput");
   const sortSelect = document.getElementById("sortSelect");
-  const minInput = document.getElementById("priceMin");
-  const maxInput = document.getElementById("priceMax");
 
   if (searchInput) {
     searchInput.value = shopState.search;
@@ -145,33 +137,23 @@ function initShopPage() {
       renderShopResults({ reset: true });
     });
   }
-  [minInput, maxInput].forEach(function (input) {
-    if (!input) return;
-    input.addEventListener("input", function () {
-      shopState.minPrice = minInput ? minInput.value : "";
-      shopState.maxPrice = maxInput ? maxInput.value : "";
-      renderShopResults({ reset: true });
-    });
-  });
 
   renderCategoryFilterPanel();
   renderShopResults();
 }
 
 window.updateCategory = function(catId) {
+    const grid = document.getElementById("shopGrid");
+    if (grid) grid.classList.add("is-updating");
+
     shopState.categoryId = catId;
     shopState.filterMode = "";
     renderCategoryFilterPanel();
     renderShopResults({ reset: true });
 
-    // إعادة التمرير لأعلى شبكة المنتجات مع مراعاة ارتفاع الهيدر الثابت
-    const grid = document.getElementById("shopGrid");
-    if (grid) {
-        const headerEl = document.querySelector(".site-header");
-        const offset = (headerEl ? headerEl.offsetHeight : 80) + 10;
-        const top = grid.getBoundingClientRect().top + window.scrollY - offset;
-        window.scrollTo({ top: top, behavior: "smooth" });
-    }
+    setTimeout(() => {
+        if (grid) grid.classList.remove("is-updating");
+    }, 200);
 };
 
 function renderCategoryFilterPanel() {
@@ -181,52 +163,39 @@ function renderCategoryFilterPanel() {
   const mainCats = categories.filter(function(c) { return !c.parentId; });
 
   let html = '';
-  html += '<button id="mobileFilterToggle" class="mobile-toggle-btn" style="display:none; width:100%; padding:12px 15px; background:var(--olive-100); color:var(--olive-700); border:none; border-radius:var(--radius-sm); font-weight:bold; align-items:center; justify-content:space-between; margin-bottom:5px; cursor:pointer;">';
-  html += '<span style="display:flex; align-items:center; gap:8px;">' + iconSvg("box") + ' تصفية الأقسام</span>';
-  html += '<span style="transition: transform 0.3s; transform: rotate(' + (shopState.mobileMenuOpen ? '180deg' : '0deg') + ');">▼</span>';
-  html += '</button>';
-
-  html += '<div id="filterListContainer" class="filter-list-container ' + (shopState.mobileMenuOpen ? 'open' : '') + '" style="flex-direction: column;">';
-  html += '<button data-cat="all" class="' + (shopState.categoryId === "all" && !shopState.filterMode ? "active" : "") + '" style="font-weight:bold; width:100%; text-align:right; margin-bottom: 8px;">جميع المنتجات</button>';
-  html += '<button data-filter="featured" class="' + (shopState.filterMode === "featured" ? "active" : "") + '" style="font-weight:bold; width:100%; text-align:right; margin-bottom: 8px; color: var(--sand-500);">⭐ منتجات مميزة</button>';
-  html += '<button data-filter="offer" class="' + (shopState.filterMode === "offer" ? "active" : "") + '" style="font-weight:bold; width:100%; text-align:right; margin-bottom: 8px; color: var(--danger);">🔥 عروض خاصة</button>';
-  html += '<button data-filter="new" class="' + (shopState.filterMode === "new" ? "active" : "") + '" style="font-weight:bold; width:100%; text-align:right; margin-bottom: 18px; color: #2563eb;">✨ وصل حديثاً</button>';
+  // الأزرار الافتراضية
+  html += '<button data-cat="all" class="shop-tab-btn ' + (shopState.categoryId === "all" && !shopState.filterMode ? "active" : "") + '">الكل</button>';
+  html += '<button data-filter="featured" class="shop-tab-btn ' + (shopState.filterMode === "featured" ? "active" : "") + '">⭐ المميزة</button>';
+  html += '<button data-filter="offer" class="shop-tab-btn ' + (shopState.filterMode === "offer" ? "active" : "") + '">🔥 العروض</button>';
+  html += '<button data-filter="new" class="shop-tab-btn ' + (shopState.filterMode === "new" ? "active" : "") + '">✨ وصل حديثاً</button>';
   
   mainCats.forEach(function(main) {
     const isMainActive = shopState.categoryId === main.id && !shopState.filterMode;
     const isChildActive = categories.some(c => c.parentId === main.id && c.id === shopState.categoryId);
     const isActive = isMainActive || (isChildActive && !shopState.filterMode);
-    const hasSubCats = categories.some(c => c.parentId === main.id);
-    let btnLabel = main.name;
-    
-    if (hasSubCats) {
-        btnLabel = '<div style="display:flex; justify-content:space-between; align-items:center;">' +
-                      '<span>' + main.name + '</span>' +
-                      '<span style="font-size:0.7rem; font-weight:600; color:var(--olive-600); background:var(--olive-100); padding:2px 8px; border-radius:10px;">+ تفرعات</span>' +
-                   '</div>';
-    }
-    html += '<button data-cat="' + main.id + '" class="main-cat-btn ' + (isActive ? "active" : "") + '" style="font-weight:bold; width:100%; text-align:right; margin-bottom: 8px;">' + btnLabel + '</button>';
+
+    html += '<button data-cat="' + main.id + '" class="shop-tab-btn ' + (isActive ? "active" : "") + '">' + main.name + '</button>';
   });
-  html += '</div>';
+  
   panel.innerHTML = html;
 
-  const toggleBtn = document.getElementById("mobileFilterToggle");
-  if (toggleBtn) {
-    toggleBtn.addEventListener("click", function() {
-      shopState.mobileMenuOpen = !shopState.mobileMenuOpen;
-      renderCategoryFilterPanel();
-    });
-  }
-
   panel.querySelectorAll("button[data-cat], button[data-filter]").forEach(function (btn) {
-    btn.addEventListener("click", function (e) {
+    btn.addEventListener("click", function () {
+      const grid = document.getElementById("shopGrid");
+      if (grid) grid.classList.add("is-updating");
+
       if (btn.dataset.filter) { shopState.filterMode = btn.dataset.filter; shopState.categoryId = "all"; } 
       else { shopState.filterMode = ""; shopState.categoryId = btn.dataset.cat; }
-      if (window.innerWidth <= 980) shopState.mobileMenuOpen = false;
+      
       const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
       window.history.pushState({path:newUrl}, '', newUrl);
+      
       renderCategoryFilterPanel();
       renderShopResults({ reset: true });
+
+      setTimeout(() => {
+        if (grid) grid.classList.remove("is-updating");
+      }, 200);
     });
   });
 }
@@ -238,10 +207,7 @@ async function fetchNextShopBatch(token) {
   showShopLoading(true);
 
   try {
-    // Explicit search/price filtering needs the complete matching dataset because
-    // Firebase Realtime Database cannot perform substring searches or combine
-    // category + arbitrary price filters in one efficient query.
-    if (shopState.search || shopState.minPrice || shopState.maxPrice || shopState.sort !== "default") {
+    if (shopState.search || shopState.sort !== "default") {
       if (!page.products.length) {
         const all = await Store.loadAllProductsFromFirebase();
         if (token !== page.token) return;
@@ -278,8 +244,6 @@ async function fetchNextShopBatch(token) {
         categories.filter(function(c) { return c.parentId === selected.id; }).forEach(function(c) { ids.push(c.id); });
       }
 
-      // Keep a cursor per category. A parent category can therefore paginate
-      // through all of its subcategories without ever downloading the full catalog.
       for (let i = 0; i < ids.length && added.length < SHOP_PAGE_SIZE; i++) {
         const categoryId = ids[i];
         const sourceKey = "cat:" + categoryId;
@@ -302,8 +266,6 @@ async function fetchNextShopBatch(token) {
       }
     });
 
-    // If a source returned nothing but is not explicitly done, stop this cycle
-    // to avoid a tight loop. A later scroll can safely try again.
     if (!added.length && !page.done) page.done = true;
   } catch (error) {
     console.error("Shop pagination error:", error);
@@ -335,8 +297,6 @@ async function renderShopResults(options) {
     const q = shopState.search.toLowerCase();
     list = list.filter(function (p) { return (p.name || "").toLowerCase().includes(q) || (p.description || "").toLowerCase().includes(q); });
   }
-  if (shopState.minPrice) list = list.filter(function (p) { return Number(p.price) >= Number(shopState.minPrice); });
-  if (shopState.maxPrice) list = list.filter(function (p) { return Number(p.price) <= Number(shopState.maxPrice); });
 
   switch (shopState.sort) {
     case "price-asc": list.sort(function (a, b) { return a.price - b.price; }); break;
@@ -345,6 +305,7 @@ async function renderShopResults(options) {
     default: break;
   }
 
+  // إظهار الأقسام الفرعية بشكل شريط رقائق ناعم أسفل التبويبات مباشرة
   const subCatContainerId = "subCategoryScroller";
   let subCatContainer = document.getElementById(subCatContainerId);
   if (shopState.categoryId !== "all" && !shopState.filterMode) {
@@ -356,26 +317,22 @@ async function renderShopResults(options) {
         if (!subCatContainer) {
           subCatContainer = document.createElement("div");
           subCatContainer.id = subCatContainerId;
-          subCatContainer.className = "cat-scroller";
-          subCatContainer.style.marginBottom = "10px";
-          subCatContainer.style.padding = "10px 0";
-          subCatContainer.style.position = "sticky";
-          const headerElForOffset = document.querySelector(".site-header");
-          subCatContainer.style.top = (headerElForOffset ? headerElForOffset.offsetHeight : 75) + "px";
-          subCatContainer.style.zIndex = "40";
-          subCatContainer.style.backgroundColor = "#fefcf4";
+          subCatContainer.style.cssText = "display:flex;gap:8px;overflow-x:auto;padding-bottom:12px;margin-bottom:15px;scrollbar-width:none;";
           const grid = document.getElementById("shopGrid");
           if (grid && grid.parentNode) grid.parentNode.insertBefore(subCatContainer, grid);
         }
-        let subHtml = '<button class="filter-chip ' + (shopState.categoryId === parentId ? 'active' : '') + '" onclick="updateCategory(\'' + parentId + '\')">الكل</button>';
-        subHtml += subCats.map(function(sub) { return '<button class="filter-chip ' + (shopState.categoryId === sub.id ? 'active' : '') + '" onclick="updateCategory(\'' + sub.id + '\')">' + sub.name + '</button>'; }).join('');
+        let subHtml = '<button class="cat-sub-chip ' + (shopState.categoryId === parentId ? 'active' : '') + '" style="' + (shopState.categoryId === parentId ? 'background:var(--olive-700);color:#fff;' : '') + '" onclick="updateCategory(\'' + parentId + '\')">كل التفرعات</button>';
+        subHtml += subCats.map(function(sub) { 
+          const isAct = shopState.categoryId === sub.id;
+          return '<button class="cat-sub-chip ' + (isAct ? 'active' : '') + '" style="' + (isAct ? 'background:var(--olive-700);color:#fff;' : '') + '" onclick="updateCategory(\'' + sub.id + '\')">' + sub.name + '</button>'; 
+        }).join('');
         subCatContainer.innerHTML = subHtml;
         subCatContainer.style.display = "flex";
       } else if (subCatContainer) subCatContainer.style.display = "none";
     }
   } else if (subCatContainer) subCatContainer.style.display = "none";
 
-  let emptyMsg = "لا توجد منتجات مطابقة لبحثك — جرّب تغيير الفلاتر.";
+  let emptyMsg = "لا توجد منتجات مطابقة لهذا القسم حاليًا.";
   if (shopState.filterMode === "featured") emptyMsg = "عذراً، لا توجد منتجات مميزة في المتجر حالياً.";
   else if (shopState.filterMode === "offer") emptyMsg = "عذراً، لا توجد عروض وتخفيضات حالياً.";
   else if (shopState.filterMode === "new") emptyMsg = "عذراً، لا توجد منتجات جديدة في المتجر حالياً.";
@@ -392,13 +349,13 @@ async function loadNextShopPage() {
   if (shopState.pagination.loading || shopState.pagination.done) return;
   await renderShopResults();
 }
+
 async function initHomeCollections() {
   const featuredEl = document.getElementById("featuredGrid");
   const offerEl = document.getElementById("offerGrid"); 
   const newEl = document.getElementById("newGrid");
   const catEl = document.getElementById("homeCategories");
 
-  // الصفحة الرئيسية تجلب فقط المنتجات التي تحمل العلامة المطلوبة، وليس كل /products.
   const results = await Promise.all([
     Store.loadProductsPageByField("featured", true, 4, null),
     Store.loadProductsPageByField("isOffer", true, 4, null),
@@ -438,7 +395,6 @@ async function initProductDetailPage() {
   const hasLegacyVariants = !hasMatrix && product.variants && product.variants.length > 0;
   const productAvailable = !!product.available;
 
-  /* ---- بناء واجهة اختيار اللون/المقاس (نظام الألوان والمقاسات) ---- */
   let matrixHtml = "";
   if (hasColors) {
     matrixHtml +=
@@ -467,7 +423,6 @@ async function initProductDetailPage() {
       '</div>';
   }
 
-  /* ---- الخيارات النصية القديمة (مثال: نكهات) — فقط عند عدم وجود ألوان/مقاسات ---- */
   let legacyVariantsHtml = "";
   if (hasLegacyVariants) {
       legacyVariantsHtml =
@@ -516,7 +471,6 @@ async function initProductDetailPage() {
         '<div class="detail-meta"><span>القسم: ' + Store.getCategoryName(product.categoryId) + '</span><span id="availabilityMeta">حالة التوفر: ' + (initiallyOutOfStock ? "غير متوفر" : "متوفر") + '</span></div>' +
       "</div></div>";
 
-  /* ---- حالة الاختيار الحالية ---- */
   let selectedColor = hasColors ? product.colors[0].name : null;
   let selectedSize = hasSizes ? product.sizes[0] : null;
   let selectedVariant = hasLegacyVariants ? product.variants[0] : null;
@@ -574,7 +528,6 @@ async function initProductDetailPage() {
     }
   }
 
-  /* ---- أحداث اختيار اللون ---- */
   const colorSwatches = document.getElementById("colorSwatches");
   if (colorSwatches) {
     colorSwatches.querySelectorAll(".color-swatch").forEach(function (btn) {
@@ -596,7 +549,6 @@ async function initProductDetailPage() {
     });
   }
 
-  /* ---- أحداث اختيار المقاس ---- */
   const sizeButtons = document.getElementById("sizeButtons");
   if (sizeButtons) {
     sizeButtons.querySelectorAll(".size-btn").forEach(function (btn) {
@@ -613,7 +565,6 @@ async function initProductDetailPage() {
     });
   }
 
-  /* ---- الخيارات النصية القديمة (قائمة منسدلة) ---- */
   const customDropdown = document.getElementById("customDropdown");
   const dropdownBtn = document.getElementById("dropdownBtn");
   const dropdownList = document.getElementById("dropdownList");
@@ -668,7 +619,6 @@ async function initProductDetailPage() {
     qtyInput.value = Math.min(Number(qtyInput.max) || 1, Number(qtyInput.value) + 1);
   });
 
-  // برمجة زر قراءة المزيد / إخفاء
   const descWrapper = document.getElementById("descWrapper");
   const descToggle = document.getElementById("descToggle");
   const descFade = document.getElementById("descFade");

@@ -5,12 +5,29 @@
    ========================================================================== */
 
 const NAV_LINKS = [
-  { href: "index.html", label: "الرئيسية", key: "home" },
-  { href: "products.html", label: "المنتجات", key: "products" },
-  { href: "products.html#categories", label: "الأقسام", key: "categories" },
-  { href: "about.html", label: "من نحن", key: "about" },
-  { href: "contact.html", label: "تواصل معنا", key: "contact" }
+  { href: "index.html", label: "الرئيسية", key: "home", icon: "home" },
+  { href: "products.html", label: "المنتجات", key: "products", icon: "box" },
+  { href: "categories.html", label: "الأقسام", key: "categories", icon: "layers" }, // تم التوجيه إلى صفحة الأقسام المستقلة
+  { href: "about.html", label: "من نحن", key: "about", icon: "info" },
+  { href: "contact.html", label: "تواصل معنا", key: "contact", icon: "phone" }
 ];
+
+function initSidebarDOM() {
+  // إنشاء الخلفية الشفافة والقائمة الجانبية مباشرة في الـ body لتجنب مشاكل الطبقات (z-index)
+  if (!document.getElementById("mainSidebarOverlay")) {
+      const overlay = document.createElement("div");
+      overlay.id = "mainSidebarOverlay";
+      overlay.className = "sidebar-overlay";
+      overlay.onclick = toggleSidebar;
+      document.body.appendChild(overlay);
+  }
+  if (!document.getElementById("sidebarNav")) {
+      const sidebar = document.createElement("nav");
+      sidebar.id = "sidebarNav";
+      sidebar.className = "sidebar-nav";
+      document.body.appendChild(sidebar);
+  }
+}
 
 function renderHeader() {
   const mount = document.getElementById("site-header");
@@ -55,9 +72,85 @@ function renderHeader() {
       '</div>' +
     '</div>';
 
+  initSidebarDOM();
+  renderSidebarNav(active);
   initMobileNav();
   initGlobalSearch();
 }
+
+function renderSidebarNav(activeKey) {
+  const sidebar = document.getElementById("sidebarNav");
+  if (!sidebar) return;
+
+  let html = '<div class="sidebar-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom:1px solid var(--line); padding-bottom:15px;">';
+  html += '<h3 style="margin:0; font-size:1.1rem; color:var(--olive-800);">القائمة</h3>';
+  html += '<button class="btn-icon btn-sm" onclick="toggleSidebar()" aria-label="إغلاق" style="background:var(--olive-50); border:none;">' + iconSvg("close") + '</button>';
+  html += '</div>';
+
+  html += '<ul style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:10px;">';
+  NAV_LINKS.forEach(link => {
+      const isActive = link.key === activeKey ? "color:var(--olive-700); font-weight:bold; background:var(--olive-50);" : "color:var(--ink-700);";
+      html += '<li><a href="' + link.href + '" style="display:flex; align-items:center; gap:10px; padding:12px; border-radius:10px; text-decoration:none; transition:0.2s; ' + isActive + '">' + iconSvg(link.icon || "box") + link.label + '</a></li>';
+  });
+
+  const allCategories = Store.getCategories();
+  const mainCategories = allCategories.filter(c => !c.parentId);
+
+  if (mainCategories.length > 0) {
+      html += '<li style="margin-top:15px; border-top:1px solid var(--line); padding-top:15px;">';
+      html += '<div style="font-weight:bold; color:var(--ink-400); font-size:0.85rem; margin-bottom:10px; padding:0 12px;">تصفح الأقسام</div>';
+      
+      mainCategories.forEach(mainCat => {
+          const subCategories = allCategories.filter(c => c.parentId === mainCat.id);
+          const hasSub = subCategories.length > 0;
+          
+          html += '<div style="margin-bottom:5px;">';
+          if (hasSub) {
+              html += '<button onclick="toggleSubmenu(this)" style="width:100%; display:flex; align-items:center; justify-content:space-between; background:transparent; border:none; padding:12px; color:var(--ink-700); font-weight:600; text-align:right; border-radius:10px; cursor:pointer;">';
+              html += '<span style="display:flex; align-items:center; gap:10px;">' + iconSvg(mainCat.icon || "box") + mainCat.name + '</span>';
+              html += '<span class="arrow" style="transition:0.3s; transform:rotate(90deg); display:inline-block;">&#10095;</span>';
+              html += '</button>';
+              
+              html += '<div class="sidebar-submenu" style="padding-right:35px; margin-top:5px; display:none;">';
+              html += '<a href="products.html?cat=' + mainCat.id + '" style="display:block; padding:8px; color:var(--olive-600); text-decoration:none; font-size:0.9rem; margin-bottom:4px;">عرض الكل (' + mainCat.name + ')</a>';
+              subCategories.forEach(subCat => {
+                  html += '<a href="products.html?cat=' + subCat.id + '" style="display:block; padding:8px; color:var(--ink-600); text-decoration:none; font-size:0.9rem; margin-bottom:4px;">- ' + subCat.name + '</a>';
+              });
+              html += '</div>';
+          } else {
+              html += '<a href="products.html?cat=' + mainCat.id + '" style="display:flex; align-items:center; gap:10px; padding:12px; border-radius:10px; color:var(--ink-700); font-weight:600; text-decoration:none;">' + iconSvg(mainCat.icon || "box") + mainCat.name + '</a>';
+          }
+          html += '</div>';
+      });
+      html += '</li>';
+  }
+  
+  html += '</ul>';
+  sidebar.innerHTML = html;
+}
+
+window.toggleSidebar = function() {
+  const sidebar = document.getElementById("sidebarNav");
+  const overlay = document.getElementById("mainSidebarOverlay");
+  
+  if (sidebar) sidebar.classList.toggle("active");
+  if (overlay) overlay.classList.toggle("active");
+};
+
+window.toggleSubmenu = function(btnElement) {
+  const submenu = btnElement.nextElementSibling;
+  const arrow = btnElement.querySelector('.arrow');
+  
+  if (submenu) {
+      if (submenu.style.display === "none") {
+          submenu.style.display = "block";
+          if(arrow) arrow.style.transform = "rotate(-90deg)"; 
+      } else {
+          submenu.style.display = "none";
+          if(arrow) arrow.style.transform = "rotate(90deg)"; 
+      }
+  }
+};
 
 function initGlobalSearch() {
   const openBtn = document.getElementById("openGlobalSearch");
@@ -68,7 +161,6 @@ function initGlobalSearch() {
 
   if(!openBtn || !overlay) return;
 
-  // فتح نافذة البحث
   openBtn.addEventListener("click", function() {
       overlay.classList.add("open");
       input.value = "";
@@ -76,17 +168,14 @@ function initGlobalSearch() {
       setTimeout(() => input.focus(), 100); 
   });
 
-  // إغلاق النافذة
   closeBtn.addEventListener("click", function() {
       overlay.classList.remove("open");
   });
 
-  // إغلاق عند الضغط خارج المربع
   overlay.addEventListener("click", function(e) {
       if(e.target === overlay) overlay.classList.remove("open");
   });
 
-  // عملية البحث المباشر أثناء الكتابة
   input.addEventListener("input", async function() {
       const query = input.value.trim().toLowerCase();
       if(query.length === 0) {
@@ -95,8 +184,6 @@ function initGlobalSearch() {
       }
 
       resultsBox.innerHTML = '<div class="empty-search">جاري البحث...</div>';
-      // البحث العام يحتاج معرفة الأسماء عبر الأقسام، لذلك يتم تحميل القائمة الكاملة
-      // فقط بعد أن يطلب الزائر البحث صراحةً، وليس عند فتح الموقع.
       const allProducts = await Store.loadAllProductsFromFirebase();
       const matched = (allProducts || []).filter(p => 
           p.name.toLowerCase().includes(query) || 
@@ -109,7 +196,6 @@ function initGlobalSearch() {
           return;
       }
 
-      // رسم النتائج
       resultsBox.innerHTML = matched.map(p => {
           const img = p.image ? `<img src="${p.image}">` : `<div class="search-img-placeholder">${iconSvg("box")}</div>`;
           return `
@@ -149,7 +235,7 @@ function renderFooter() {
             '<p>' + settings.storeDescription + '</p>' +
           '</div>' +
           '<div><h4>روابط سريعة</h4><ul>' +
-            '<li><a href="index.html">الرئيسية</a></li><li><a href="products.html">المنتجات</a></li><li><a href="about.html">من نحن</a></li><li><a href="contact.html">تواصل معنا</a></li>' +
+            '<li><a href="index.html">الرئيسية</a></li><li><a href="products.html">المنتجات</a></li><li><a href="categories.html">الأقسام</a></li><li><a href="about.html">من نحن</a></li><li><a href="contact.html">تواصل معنا</a></li>' +
           '</ul></div>' +
           '<div><h4>الأقسام</h4><ul>' + (catLinks || '<li>لا توجد أقسام بعد</li>') + '</ul></div>' +
           '<div><h4>تواصل معنا</h4><ul>' +
@@ -167,17 +253,9 @@ function renderFooter() {
 
 function initMobileNav() {
   const toggle = document.getElementById("navToggle");
-  const nav = document.getElementById("mainNav");
-  if (!toggle || !nav) return;
+  if (!toggle) return;
   toggle.addEventListener("click", function () {
-    nav.classList.toggle("open");
-    toggle.innerHTML = nav.classList.contains("open") ? iconSvg("close") : iconSvg("menu");
-  });
-  nav.querySelectorAll("a").forEach(function (a) {
-    a.addEventListener("click", function () {
-      nav.classList.remove("open");
-      toggle.innerHTML = iconSvg("menu");
-    });
+    toggleSidebar();
   });
 }
 

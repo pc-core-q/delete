@@ -8,17 +8,57 @@
   <meta http-equiv="Expires" content="0">
   <title>المنتجات | متجرك الإلكتروني</title>
   <link rel="icon" href="assets/logo/logo.png">
-  <!-- تم التحديث إلى v=28 -->
-  <link rel="stylesheet" href="css/style.css?v=30">
+  <link rel="stylesheet" href="css/style.css?v=34">
   <style>
+  /* شريط التبويبات العلوي للأقسام السلس */
+  .shop-cat-tabs-wrap {
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 4px 0 14px;
+    margin-bottom: 10px;
+    display: flex;
+    gap: 8px;
+  }
+  .shop-cat-tabs-wrap::-webkit-scrollbar { display: none; }
+  
+  .shop-tab-btn {
+    flex: 0 0 auto;
+    padding: 8px 18px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink-700);
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.22s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .shop-tab-btn:hover {
+    border-color: var(--olive-500);
+    background: var(--olive-50);
+  }
+  .shop-tab-btn.active {
+    background: var(--olive-700);
+    color: #fff;
+    border-color: var(--olive-700);
+    box-shadow: 0 4px 12px rgba(13, 81, 68, 0.2);
+  }
+
+  /* انتقال ناعم لشبكة المنتجات */
+  #shopGrid {
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+  #shopGrid.is-updating {
+    opacity: 0.4;
+    transform: translateY(4px);
+  }
+
   @media (max-width: 768px) {
-    .feature-grid {
-      grid-template-columns: repeat(2, 1fr) !important;
-      gap: 10px !important;
-    }
-    .feature-grid h3 { font-size: 13px !important; margin-bottom: 5px !important; }
-    .feature-grid p { font-size: 11px !important; }
-    
     .product-grid, #shopGrid {
       display: grid !important;
       grid-template-columns: repeat(2, 1fr) !important;
@@ -45,14 +85,15 @@
     <div class="container">
       <div class="breadcrumb"><a href="index.html">الرئيسية</a> / المنتجات</div>
       <h1>كل المنتجات</h1>
-      <p>تصفّح مجموعتنا الكاملة من المنتجات، وابحث أو صفِّ النتائج حسب القسم والسعر.</p>
+      <p>تصفّح مجموعتنا الكاملة من المنتجات بسلاسة وسرعة فائقة.</p>
     </div>
   </section>
 
-  <section class="section" style="padding-top:10px;">
+  <section class="section" style="padding-top:15px;">
     <div class="container">
 
-      <div class="shop-toolbar">
+      <!-- شريط البحث والترتيب -->
+      <div class="shop-toolbar" style="margin-bottom: 12px;">
         <div class="search-box">
           <input type="text" id="searchInput" placeholder="ابحث عن منتج...">
           <span></span>
@@ -66,24 +107,11 @@
         <span id="resultCount" style="font-size:.85rem;color:var(--ink-600);white-space:nowrap;"></span>
       </div>
 
-      <div class="shop-layout">
-        <aside class="filter-panel">
-          <div>
-            <h4>الأقسام</h4>
-            <div class="cat-list" id="filterCategories"></div>
-          </div>
-          <div>
-            <h4>نطاق السعر (د.ع)</h4>
-            <div class="range-row">
-              <input type="number" id="priceMin" placeholder="من">
-              <span>—</span>
-              <input type="number" id="priceMax" placeholder="إلى">
-            </div>
-          </div>
-        </aside>
+      <!-- شريط تبويبات الأقسام السلس والسريع (Pills Bar) -->
+      <div class="shop-cat-tabs-wrap" id="filterCategories"></div>
 
-        <div class="product-grid" id="shopGrid"></div>
-      </div>
+      <!-- شبكة المنتجات المباشرة -->
+      <div class="product-grid" id="shopGrid"></div>
 
     </div>
   </section>
@@ -91,15 +119,14 @@
 
 <div id="site-footer"></div>
 
-<!-- تم التحديث إلى v=28 -->
 <script src="js/config.js?v=28"></script>
 <script src="js/icons.js?v=28"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script src="js/store.js?v=29"></script>
 <script src="js/whatsapp.js?v=28"></script>
-<script src="js/app.js?v=28"></script>
-<script src="js/products.js?v=29"></script>
+<script src="js/app.js?v=29"></script>
+<script src="js/products.js?v=30"></script>
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const shopSearchSpan = document.querySelector(".shop-toolbar .search-box span");

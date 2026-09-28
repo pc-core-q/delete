@@ -31,28 +31,31 @@ const STORE_CONFIG = {
 
   // === Firebase Web App / Authentication ===
   // هذه القيم تُؤخذ من Firebase Console > Project settings > Your apps > Web app.
-  firebaseApiKey: "AIzaSyAnAHTDxGlWwBfe9Ta8ttQ8QZWLA5ZNYw8",
-  firebaseAuthDomain: "test3-2a6de.firebaseapp.com",
-  firebaseProjectId: "test3-2a6de",
-  firebaseStorageBucket: "test3-2a6de.firebasestorage.app",
-  firebaseMessagingSenderId: "44087547093",
-  firebaseAppId: "1:44087547093:web:91a03c47e7810869fbfe5c",
+  firebaseApiKey: "",
+  firebaseAuthDomain: "",
+  firebaseProjectId: "",
+  firebaseStorageBucket: "",
+  firebaseMessagingSenderId: "",
+  firebaseAppId: "",
   // بريد/عناوين حسابات الأدمن المسموح لها بدخول الواجهة.
   // هذا ليس بديلًا عن Security Rules؛ سنضيفها في المرحلة التالية.
-  adminEmails: ["a@email.com"],
+  adminEmails: [],
 
   // === Firebase Realtime Database (اختياري) ===
   // اتركه فارغًا للعمل بدون مزامنة سحابية (localStorage فقط، مناسب كنسخة
   // تجريبية أو متجر بزائر واحد لكل جهاز). عبّئه برابط قاعدة بيانات Firebase
   // الخاصة بك لتفعيل المزامنة بين الأجهزة.
- firebaseDatabaseURL: "https://test3-2a6de-default-rtdb.europe-west1.firebasedatabase.app",
+
+ //firebaseDatabaseURL: "",
 
   // === ImgBB (اختياري) — رفع صور المنتجات/الأقسام/الإعلانات من لوحة التحكم ===
   // احصل على مفتاح مجاني من https://api.imgbb.com/
-  imgbbApiKey: "820a1a52d1b835874a9200fe7d3bb6b3",
+
+  //imgbbApiKey: "",
 
   // === ImageKit (اختياري) — تحويل روابط ImgBB إلى CDN محسّن (WebP + تحجيم) ===
   // إن تُرك فارغًا، تُستخدم روابط ImgBB مباشرة بدون أي تحويل (يعمل بشكل طبيعي،
   // فقط بدون تحسينات CDN الإضافية).
-  imageKitEndpoint: "https://ik.imagekit.io/test3wf"
+
+  //imageKitEndpoint: ""
 };

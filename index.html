@@ -9,7 +9,7 @@
   <title>الرئيسية | متجرك الإلكتروني</title>
   <meta name="description" content="تصفّح منتجاتنا واطلب مباشرة عبر واتساب بسهولة وسرعة.">
   <link rel="icon" href="assets/logo/logo.png">
-  <link rel="stylesheet" href="css/style.css?v=30">
+  <link rel="stylesheet" href="css/style.css?v=31">
 <style>
   /* === التعديلات التنسيقية وسلايدر العروض الترويجية === */
   .hero-art { background: none !important; box-shadow: none !important; border-radius: 0 !important; width: 100% !important; }
@@ -84,6 +84,10 @@
 </head>
 <body>
 
+<!-- Sidebar overlay -->
+<div class="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+<!-- الهيدر يتم توليده عبر app.js، القائمة الجانبية ستُضاف هناك -->
 <div id="site-header" data-active="home"></div>
 
 <main>
@@ -115,6 +119,7 @@
           <p>كل منتجاتنا مرتّبة في أقسام واضحة وسهلة التصفح.</p>
         </div>
       </div>
+      <!-- تعديل الكلاس لتطبيق التمرير الأفقي الجديد -->
       <div class="cat-scroller" id="homeCategories"></div>
     </div>
   </section>
@@ -318,7 +323,6 @@
     }
 
     // 4. رسم المنتجات: الصفحة الرئيسية تجلب فقط المميزة/العروض/الجديدة.
-    // لا يتم تحميل /products بالكامل عند دخول الموقع.
     const homeResults = await Promise.all([
       Store.loadProductsByField("featured", false, "featured"),
       Store.loadProductsByField("isOffer", false, "offers"),

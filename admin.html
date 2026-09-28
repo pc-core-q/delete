@@ -3,15 +3,14 @@
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta charset="UTF-8">
-  <meta charset="UTF-8">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
-<title>لوحة تحكم الأدمن | متجرك الإلكتروني</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>لوحة تحكم الأدمن | متجرك الإلكتروني</title>
   <link rel="icon" href="assets/logo/logo.png">
-  <link rel="stylesheet" href="css/style.css?v=30">
+  <link rel="stylesheet" href="css/style.css?v=33">
 <style>
-  /* === 1. جدار الحماية ضد تمدد الصفحة === */
+  /* === حماية ضد تمدد الصفحة وتنسيق المودال والأزرار === */
   html, body {
       overflow-x: hidden !important;
       max-width: 100vw !important;
@@ -25,8 +24,6 @@
       min-width: 0 !important;
       width: 100% !important;
   }
-
-  /* === 2. إصلاح النافذة المنبثقة (المودال) === */
   .modal-overlay {
       display: none;
       align-items: center !important;
@@ -37,6 +34,7 @@
       width: 100vw !important;
       height: 100vh !important;
       box-sizing: border-box !important;
+      z-index: 10005 !important;
   }
   .modal-overlay.open {
       display: flex !important;
@@ -44,30 +42,9 @@
   .modal-card {
       margin: 0 !important;
       position: relative !important;
-      top: auto !important;
-      left: auto !important;
-      right: auto !important;
-      bottom: auto !important;
-      transform: none !important;
       width: 100% !important;
       max-width: 90vw !important;
   }
-
-  /* === 3. إصلاح القائمة الجانبية في الهاتف === */
-  @media (max-width: 980px) {
-      .admin-sidebar.open {
-          right: 0 !important;
-          left: auto !important;
-          top: 0 !important;
-          bottom: 0 !important;
-          margin: 0 !important;
-          width: 280px !important;
-          max-width: 85vw !important;
-          position: fixed !important;
-      }
-  }
-
-  /* === 4. إصلاح الأيقونات والأزرار === */
   .row-actions {
       flex-wrap: nowrap !important;
   }
@@ -88,27 +65,57 @@
       gap: 10px !important;
       text-align: right !important;
   }
+
+  /* تنسيق القائمة الجانبية في الهاتف لتكون فوق الخلفية الشفافة تماماً */
+  @media (max-width: 900px) {
+      .admin-sidebar {
+          position: fixed !important;
+          top: 0 !important;
+          bottom: 0 !important;
+          right: -300px !important;
+          width: 280px !important;
+          max-width: 85vw !important;
+          z-index: 10000 !important;
+          transition: right 0.3s ease-in-out !important;
+          box-shadow: -5px 0 25px rgba(0,0,0,0.3) !important;
+      }
+      .admin-sidebar.open {
+          right: 0 !important;
+      }
+      .admin-close-sidebar {
+          display: inline-flex !important;
+      }
+  }
+  @media (min-width: 901px) {
+      .admin-close-sidebar {
+          display: none !important;
+      }
+  }
 </style>
 </head>
 <body>
 
 <div id="adminApp" class="admin-shell">
+  
+  <!-- الخلفية الشفافة المظلمة للقائمة الجانبية في الهاتف -->
+  <div class="sidebar-overlay" onclick="toggleAdminSidebar()"></div>
 
   <!-- ============ Sidebar ============ -->
   <aside class="admin-sidebar" id="adminSidebar">
-    <div class="brand">
-      <img src="assets/logo/logo.png" alt="شعار المتجر" style="width:40px;height:40px;border-radius:50%;">
-      <span class="brand-name">متجرك الإلكتروني<span style="color:rgba(255,255,255,.55);">لوحة التحكم</span></span>
+    <div class="brand" style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <img src="assets/logo/logo.png" alt="شعار المتجر" style="width:40px;height:40px;border-radius:50%;">
+        <span class="brand-name">متجرك الإلكتروني<span style="color:rgba(255,255,255,.55);">لوحة التحكم</span></span>
+      </div>
+      <!-- زر إغلاق القائمة الجانبية في الموبايل -->
+      <button type="button" class="btn-icon btn-sm admin-close-sidebar" onclick="toggleAdminSidebar()" title="إغلاق القائمة" style="background:rgba(255,255,255,.1); border:none; color:#fff; cursor:pointer;">__ICON_CLOSE__</button>
     </div>
 
     <nav class="admin-nav">
       <button type="button" data-panel="dashboard" class="active">__ICON_GAUGE__ الإحصائيات</button>
       <button type="button" data-panel="products">__ICON_BOX__ المنتجات</button>
       <button type="button" data-panel="categories">__ICON_LAYERS__ الأقسام</button>
-      
-      <!-- التعديل 1: إضافة زر قسم الإعلانات -->
       <button type="button" data-panel="ads">__ICON_IMAGE__ الإعلانات</button>
-      
       <button type="button" data-panel="orders">__ICON_CART__ الطلبات</button>
       <button type="button" data-panel="settings">__ICON_SETTINGS__ الإعدادات</button>
     </nav>
@@ -121,8 +128,8 @@
 
   <!-- ============ Main ============ -->
   <main class="admin-main">
-    <div class="admin-topbar">
-      <button class="btn-icon" id="adminSidebarToggle" style="display:none;">__ICON_MENU__</button>
+    <div class="admin-topbar" style="display:flex; align-items:center; gap:12px;">
+      <button class="btn-icon" id="adminSidebarToggle" title="فتح القائمة">__ICON_MENU__</button>
       <h2 style="margin:0;">مرحبًا بك 👋</h2>
     </div>
 
@@ -175,7 +182,7 @@
       </div>
     </section>
 
-    <!-- ---- Ads panel (القسم الجديد) ---- -->
+    <!-- ---- Ads panel ---- -->
     <section class="admin-panel-view" id="panel-ads" style="display:none;">
       <div class="admin-panel">
         <div class="panel-head">
@@ -257,18 +264,6 @@
       <div class="field"><label>السعر (د.ع)</label><input type="number" id="productPrice" min="0" required></div>
       <div class="field"><label>القسم</label><select id="productCategorySelect" required></select></div>
       
-      <!-- التعديل 2: حقل إضافة النكهات/الأحجام -->
-         <div class="field">
-        <label>الخيارات (مثل: نكهات أو أحجام) - افصل بينها بفاصلة ،</label>
-        <input type="text" id="productVariants" placeholder="مثال: دجاج, لحم, سمك - اتركها فارغة إذا لم تكن هناك خيارات">
-      </div>
-
-      <div class="field" id="variantImagesWrap" style="display:none;">
-        <label>صورة كل خيار (اختياري) — إن لم تحدد صورة لخيار معين ستُستخدم صورة المنتج الرئيسية</label>
-        <div id="variantImagesList" style="display:flex;flex-direction:column;gap:10px;"></div>
-      </div>
-
-      <!-- نظام الألوان + المقاسات + المخزون لكل تركيبة (مناسب لمنتجات الملابس، واختياري لأي منتج) -->
       <div class="field">
         <label style="display:flex;justify-content:space-between;align-items:center;">
           الألوان (اختياري — مثال: منتجات الملابس)
@@ -327,7 +322,7 @@
   </div>
 </div>
 
-<!-- ============ Ad modal (النافذة الجديدة) ============ -->
+<!-- ============ Ad modal ============ -->
 <div class="modal-overlay" id="adModal">
   <div class="modal-card" style="max-width: 90vw; width: 500px; max-height: 90vh; overflow-y: auto;">
     <div class="modal-head">
@@ -369,14 +364,14 @@
 <script src="js/whatsapp.js"></script>
 <script src="js/app.js"></script>
 <script src="js/auth.js?v=10"></script>
-<script src="js/admin.js??v=28"></script>
+<script src="js/admin.js??v=29"></script>
 <script>
   // تعبئة الأيقونات الثابتة
   document.querySelector(".admin-nav").innerHTML = document.querySelector(".admin-nav").innerHTML
     .replace("__ICON_GAUGE__", iconSvg("gauge"))
     .replace("__ICON_BOX__", iconSvg("box"))
     .replace("__ICON_LAYERS__", iconSvg("layers"))
-    .replace("__ICON_IMAGE__", iconSvg("image")) // التعديل 3: استبدال أيقونة الصور
+    .replace("__ICON_IMAGE__", iconSvg("image"))
     .replace("__ICON_CART__", iconSvg("cart"))
     .replace("__ICON_SETTINGS__", iconSvg("settings"));
 
@@ -385,16 +380,21 @@
     .replace("__ICON_LOGOUT__", iconSvg("logout"));
 
   document.getElementById("adminSidebarToggle").innerHTML = iconSvg("menu");
+  
+  // زر إغلاق القائمة الجانبية للأدمن في الموبايل
+  const closeSidebarBtn = document.querySelector(".admin-close-sidebar");
+  if (closeSidebarBtn) {
+    closeSidebarBtn.innerHTML = iconSvg("close");
+  }
+
   document.getElementById("addProductBtn").innerHTML = iconSvg("plus") + " إضافة منتج";
   document.getElementById("addCategoryBtn").innerHTML = iconSvg("plus") + " إضافة قسم";
   document.getElementById("closeProductModal").innerHTML = iconSvg("close");
   document.getElementById("closeCategoryModal").innerHTML = iconSvg("close");
   
-  // أزرار الإعلانات الجديدة
   document.getElementById("addAdBtn").innerHTML = iconSvg("plus") + " إضافة إعلان";
   document.getElementById("closeAdModal").innerHTML = iconSvg("close");
   
-  // تعبئة أيقونة سلة المهملات لأزرار مسح الصور 
   if(document.getElementById("removeProductImageBtn")) {
       document.getElementById("removeProductImageBtn").innerHTML = iconSvg("trash");
   }

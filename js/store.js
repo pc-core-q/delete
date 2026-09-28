@@ -91,9 +91,9 @@ async function pullFromFirebase() {
   if (!firebaseEnabled) return;
   try {
     // مهم: لا نسحب /products هنا. المتجر العام يجلب المنتجات حسب القسم عند الحاجة.
-    const lastSync = localStorage.getItem("last_meta_pull_time");
-    const now = Date.now();
-    const cooldownMs = 15 * 60 * 1000;
+   // const lastSync = localStorage.getItem("last_meta_pull_time");
+   // const now = Date.now();
+  //  const cooldownMs = 15 * 60 * 1000;
 
     if (lastSync && (now - parseInt(lastSync)) < cooldownMs) {
       const notifySync = () => document.dispatchEvent(new CustomEvent("store:synced"));

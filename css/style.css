@@ -295,6 +295,23 @@
   .shop-toolbar{grid-template-columns:1fr 180px}
   .shop-toolbar>#resultCount{grid-column:1/-1}
 }
+/* منع انكماش أزرار رأس الأقسام وضمان بقاء النص على سطر واحد */
+.section-head .btn {
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+
+@media (max-width: 768px) {
+  .section-head {
+    align-items: center !important;
+    gap: 12px !important;
+  }
+  .section-head .btn {
+    min-height: 34px !important;
+    padding: 6px 14px !important;
+    font-size: 0.8rem !important;
+  }
+}
 
 @media(min-width:901px){
   #adminSidebarToggle{display:none!important}

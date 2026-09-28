@@ -1,12 +1,10 @@
 /* ==========================================================================
    store.js — طبقة البيانات المركزية للقالب (localStorage + Firebase اختياري)
-   كل القراءة والكتابة تمر حصرًا عبر كائن Store في هذا الملف. للترقية لاحقًا
-   إلى قاعدة بيانات حقيقية (Supabase مثلاً) يكفي استبدال محتوى دوال هذا الملف
-   بنداءات API حقيقية دون تعديل أي صفحة أو ملف آخر. راجع PROJECT_REFERENCE.md.
+   كل القراءة والكتابة تمر حصرًا عبر كائن Store في هذا الملف.
    ========================================================================== */
 
 /* ---------------------------------------------------------------------- */
-/* Firebase Realtime Database — اختياري تمامًا                           */
+/* Firebase Realtime Database — اختياري تمامًا                            */
 /* يُفعَّل فقط إذا كان STORE_CONFIG.firebaseDatabaseURL معبّأً في config.js */
 /* ---------------------------------------------------------------------- */
 
@@ -57,8 +55,7 @@ function uid(prefix) {
   return (prefix || "id") + "_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
-// مفتاح سطر سلة فريد لكل تركيبة منتج + لون + مقاس (أو + خيار نصي قديم).
-// يضمن أن "أسود + وسط" و"أسود + كبير" يُعاملان كسطرين مختلفين في السلة.
+// مفتاح سطر سلة فريد لكل تركيبة منتج + لون + مقاس (أو + خيار نصي قديم)
 function buildCartItemKey(productId, meta) {
   meta = meta || {};
   const parts = [productId];
@@ -68,7 +65,7 @@ function buildCartItemKey(productId, meta) {
   return parts.join("|");
 }
 
-/* --- رفع الجزء المعدل فقط إلى فايربيس (لا شيء يحدث إن كان معطّلًا) --- */
+/* --- رفع الجزء المعدل فقط إلى فايربيس --- */
 function syncNodeToFirebase(nodeKey, data) {
   if (!firebaseEnabled) return;
   database.ref(nodeKey).set(data).catch(error => {
@@ -87,36 +84,46 @@ async function fetchNode(nodeKey) {
   }
 }
 
+// تحويل نتيجة Firebase (سواء كانت Array أو Object) إلى مصفوفة نظيفة
+function firebaseValueToArray(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.filter(Boolean);
+  return Object.keys(value).map(function (key) { return value[key]; }).filter(Boolean);
+}
+
 async function pullFromFirebase() {
   if (!firebaseEnabled) return;
   try {
-    // مهم: لا نسحب /products هنا. المتجر العام يجلب المنتجات حسب القسم عند الحاجة.
-   const lastSync = localStorage.getItem("last_meta_pull_time");
-   const now = Date.now();
-  //  const cooldownMs = 15 * 60 * 1000;
+    const lastSync = localStorage.getItem("last_meta_pull_time");
+    const now = Date.now();
+    const cooldownMs = 15 * 60 * 1000; // 15 دقيقة لحماية باقة فايربيس المجانية
 
-    if (lastSync && (now - parseInt(lastSync)) < cooldownMs) {
+    // إذا تمت المزامنة حديثاً قبل أقل من 15 دقيقة، نعتمد الكاش المحلي ونوفر الاتصال
+    if (lastSync && (now - parseInt(lastSync, 10)) < cooldownMs) {
       const notifySync = () => document.dispatchEvent(new CustomEvent("store:synced"));
       if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", notifySync, { once: true });
       else notifySync();
       return;
     }
 
-    // الأقسام والإعدادات والإعلانات صغيرة نسبيًا، لذلك تبقى مزامنتها عامة.
-    const [categories, settings, ads] = await Promise.all([
+    // سحب الأقسام، الإعدادات، والإعلانات دفعة واحدة
+    const [rawCategories, settings, rawAds] = await Promise.all([
       fetchNode(DB_KEYS.categories),
       fetchNode(DB_KEYS.settings),
       fetchNode(DB_KEYS.ads)
     ]);
 
-    if (categories !== null) localStorage.setItem(DB_KEYS.categories, JSON.stringify(categories || []));
-    if (settings !== null) localStorage.setItem(DB_KEYS.settings, JSON.stringify(settings || {}));
-    if (ads !== null) localStorage.setItem(DB_KEYS.ads, JSON.stringify(ads || []));
+    const categories = firebaseValueToArray(rawCategories);
+    const ads = firebaseValueToArray(rawAds);
 
-    // الطلبات لا تُسحب إلا من جلسة الأدمن.
+    if (rawCategories !== null) localStorage.setItem(DB_KEYS.categories, JSON.stringify(categories));
+    if (settings !== null) localStorage.setItem(DB_KEYS.settings, JSON.stringify(settings || {}));
+    if (rawAds !== null) localStorage.setItem(DB_KEYS.ads, JSON.stringify(ads));
+
+    // الطلبات لا تُسحب إلا من جلسة الأدمن
     if (sessionStorage.getItem(DB_KEYS.session) === "1") {
       const orders = await fetchNode(DB_KEYS.orders);
-      if (orders !== null) localStorage.setItem(DB_KEYS.orders, JSON.stringify(orders || []));
+      if (orders !== null) localStorage.setItem(DB_KEYS.orders, JSON.stringify(firebaseValueToArray(orders)));
     }
 
     localStorage.setItem("last_meta_pull_time", now.toString());
@@ -126,13 +133,6 @@ async function pullFromFirebase() {
   } catch (e) {
     console.error("Firebase metadata pull error:", e);
   }
-}
-
-// تحويل نتيجة Firebase (قد تكون Array أو Object) إلى مصفوفة منتجات.
-function firebaseValueToArray(value) {
-  if (!value) return [];
-  if (Array.isArray(value)) return value.filter(Boolean);
-  return Object.keys(value).map(function (key) { return value[key]; }).filter(Boolean);
 }
 
 async function fetchProductsByFieldFromFirebase(field, value) {
@@ -153,9 +153,6 @@ async function fetchProductsPageByCategoryFromFirebase(categoryId, pageSize, cur
   if (!firebaseEnabled || !categoryId || categoryId === "all") return { products: [], nextCursor: null, done: true };
   try {
     let query = database.ref(DB_KEYS.products).orderByChild("categoryId");
-
-    // The Firebase child key is the tie-breaker for products sharing the same category.
-    // Request one extra row when a cursor exists so the cursor item itself can be skipped.
     query = cursorKey ? query.startAt(categoryId, cursorKey) : query.equalTo(categoryId);
     if (cursorKey) query = query.endAt(categoryId);
     query = query.limitToFirst(pageSize + (cursorKey ? 1 : 0));
@@ -268,13 +265,39 @@ async function fetchAllProductsFromFirebase() {
     return null;
   }
 }
+
+// بدء المزامنة الذكية عند تحميل الملف
 pullFromFirebase();
 
 /* ---------------------------------------------------------------------- */
-/* التهيئة الأولى — القالب يبدأ بدون أي منتجات أو أقسام أو إعلانات حقيقية */
+/* التهيئة وإدارة إصدار البيانات (لحذف الكاش المتقادم تلقائياً للزبائن)   */
 /* ---------------------------------------------------------------------- */
 
 function seedIfNeeded() {
+  const currentVersion = String((typeof STORE_CONFIG !== "undefined" && STORE_CONFIG.dataVersion) || "1");
+  const storedVersion = localStorage.getItem("ws_data_version");
+
+  // إذا تم تغيير dataVersion في config.js، نحذف الكاش القديم بالكامل فوراً للزبون
+  if (storedVersion !== currentVersion) {
+    const keysToRemove = [
+      DB_KEYS.categories,
+      DB_KEYS.products,
+      DB_KEYS.ads,
+      "last_meta_pull_time",
+      "ws_products_all_time"
+    ];
+    
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith("ws_products_") || keysToRemove.includes(key))) {
+        localStorage.removeItem(key);
+      }
+    }
+
+    localStorage.setItem("ws_data_version", currentVersion);
+    localStorage.removeItem(DB_KEYS.seeded);
+  }
+
   if (localStorage.getItem(DB_KEYS.seeded)) return;
 
   localStorage.setItem(DB_KEYS.categories, JSON.stringify([]));
@@ -303,15 +326,13 @@ function seedIfNeeded() {
 seedIfNeeded();
 
 /* ---------------------------------------------------------------------- */
-/* أدوات المتغيرات (الألوان/المقاسات/المخزون)                            */
+/* أدوات المتغيرات (الألوان/المقاسات/المخزون)                             */
 /* ---------------------------------------------------------------------- */
 
-// مفتاح موحّد لخانة المخزون حسب اللون والمقاس (أيّ منهما قد يكون فارغًا)
 function inventoryKey(color, size) {
   return (color || "_") + "||" + (size || "_");
 }
 
-// مجموع كل كميات المخزون عبر كل تركيبات اللون/المقاس لمنتج معيّن
 function sumInventory(inventory) {
   if (!inventory) return 0;
   return Object.values(inventory).reduce(function (sum, n) { return sum + (Number(n) || 0); }, 0);
@@ -322,7 +343,10 @@ function sumInventory(inventory) {
 /* ---------------------------------------------------------------------- */
 
 const Store = {
-  getCategories() { return JSON.parse(localStorage.getItem(DB_KEYS.categories) || "[]"); },
+  getCategories() { 
+    const val = JSON.parse(localStorage.getItem(DB_KEYS.categories) || "[]");
+    return firebaseValueToArray(val);
+  },
   saveCategories(list) {
     localStorage.setItem(DB_KEYS.categories, JSON.stringify(list));
     syncNodeToFirebase(DB_KEYS.categories, list);
@@ -342,29 +366,38 @@ const Store = {
     return c ? c.name : "";
   },
 
-  getProducts() { return JSON.parse(localStorage.getItem(DB_KEYS.products) || "[]"); },
+  getProducts() { 
+    const val = JSON.parse(localStorage.getItem(DB_KEYS.products) || "[]");
+    return firebaseValueToArray(val);
+  },
   saveProducts(list) {
     localStorage.setItem(DB_KEYS.products, JSON.stringify(list));
     syncNodeToFirebase(DB_KEYS.products, list);
   },
   getProduct(id) { return this.getProducts().find(p => p.id === id) || null; },
 
-  // تحميل منتجات قسم واحد فقط. النتيجة تُحفظ محليًا كذاكرة مؤقتة.
-  // Pagination APIs below هي المسار المفضل للواجهة العامة؛ الدوال القديمة تبقى للتوافق.
   async loadProductsByField(field, value, cacheName, forceRefresh) {
     const cacheKey = "ws_products_filter_" + cacheName;
     const cacheTimeKey = cacheKey + "_time";
     const now = Date.now();
     const cached = JSON.parse(localStorage.getItem(cacheKey) || "[]");
     const cachedAt = Number(localStorage.getItem(cacheTimeKey) || 0);
-    if (!forceRefresh && cached.length && now - cachedAt < 15 * 60 * 1000) return cached;
+
+    // نعتمد الكاش فقط إذا كان ممتلئاً ومضى عليه أقل من 15 دقيقة
+    if (!forceRefresh && cached && cached.length > 0 && (now - cachedAt < 15 * 60 * 1000)) {
+      return cached;
+    }
+
     if (!firebaseEnabled) {
       return this.getProducts().filter(function(p) { return p[field] === value; });
     }
+
     const products = await fetchProductsByFieldFromFirebase(field, value);
-    localStorage.setItem(cacheKey, JSON.stringify(products));
-    localStorage.setItem(cacheTimeKey, String(now));
-    return products;
+    if (products && products.length > 0) {
+      localStorage.setItem(cacheKey, JSON.stringify(products));
+      localStorage.setItem(cacheTimeKey, String(now));
+    }
+    return products || [];
   },
 
   async loadProductsPageByCategory(categoryId, pageSize, cursorKey) {
@@ -412,9 +445,11 @@ const Store = {
 
   _cacheLoadedProducts(products) {
     if (!products || !products.length) return;
-    const current = this.getProducts();
-    const byId = new Map(current.map(function(p) { return [p.id, p]; }));
-    products.forEach(function(p) { if (p && p.id) byId.set(p.id, p); });
+    const byId = new Map();
+    // نعتمد فقط المنتجات المسحوبة حديثاً لتجنب إبقاء أي منتجات قديمة محذوفة
+    products.forEach(function(p) { 
+      if (p && p.id) byId.set(p.id, p); 
+    });
     localStorage.setItem(DB_KEYS.products, JSON.stringify(Array.from(byId.values())));
   },
 
@@ -425,23 +460,19 @@ const Store = {
     const now = Date.now();
     const cached = JSON.parse(localStorage.getItem(cacheKey) || "[]");
     const cachedAt = Number(localStorage.getItem(cacheTimeKey) || 0);
-    if (!forceRefresh && cached.length && now - cachedAt < 15 * 60 * 1000) {
+    if (!forceRefresh && cached && cached.length > 0 && (now - cachedAt < 15 * 60 * 1000)) {
       return cached;
     }
 
     if (!firebaseEnabled) {
       return this.getProducts().filter(function(p) { return p.categoryId === categoryId; });
     }
-    const products = await fetchProductsByCategoryFromFirebase(categoryId);
-    localStorage.setItem(cacheKey, JSON.stringify(products));
-    localStorage.setItem(cacheTimeKey, String(now));
-
-    // نحتفظ بما تم تحميله فقط في الذاكرة المحلية، ولا نطلب بقية المنتجات.
-    const current = this.getProducts();
-    const ids = new Set(products.map(function(p) { return p.id; }));
-    const withoutOldCategory = current.filter(function(p) { return !ids.has(p.id); });
-    localStorage.setItem(DB_KEYS.products, JSON.stringify(withoutOldCategory.concat(products)));
-    return products;
+    const products = await fetchProductsByFieldFromFirebase("categoryId", categoryId);
+    if (products && products.length > 0) {
+      localStorage.setItem(cacheKey, JSON.stringify(products));
+      localStorage.setItem(cacheTimeKey, String(now));
+    }
+    return products || [];
   },
 
   async loadProductById(id, forceRefresh) {
@@ -469,9 +500,6 @@ const Store = {
     return products;
   },
 
-  // نموذج المنتج العام (يدعم الأقسام، الخيارات النصية البسيطة، وأيضًا نظام
-  // الألوان + المقاسات + المخزون لكل تركيبة — مناسب لأي نوع متجر، والملابس
-  // بشكل خاص). راجع PROJECT_REFERENCE.md لشرح كل حقل.
   addProduct(prod) {
     const list = this.getProducts();
     const item = Object.assign({
@@ -484,11 +512,11 @@ const Store = {
       isNew: false,
       isOffer: false,
       image: null,
-      variants: [],       // خيارات نصية بسيطة (مثال: نكهات) — لمنتجات بدون ألوان/مقاسات
+      variants: [],
       variantImages: {},
-      colors: [],         // [{ name, hex, image }]
-      sizes: [],          // ["S", "M", "L", ...]
-      inventory: {}        // { "لون||مقاس": كمية }
+      colors: [],
+      sizes: [],
+      inventory: {}
     }, prod);
     list.unshift(item);
     this.saveProducts(list);
@@ -500,16 +528,13 @@ const Store = {
   },
   deleteProduct(id) { this.saveProducts(this.getProducts().filter(p => p.id !== id)); },
 
-  // هل للمنتج نظام ألوان/مقاسات مفعّل؟
   hasVariantMatrix(product) {
     return !!(product && ((product.colors && product.colors.length) || (product.sizes && product.sizes.length)));
   },
-  // إجمالي المخزون: من مصفوفة المخزون إن وُجد نظام ألوان/مقاسات، وإلا من stock العام
   getTotalStock(product) {
     if (!product) return 0;
     return this.hasVariantMatrix(product) ? sumInventory(product.inventory) : (Number(product.stock) || 0);
   },
-  // مخزون تركيبة لون/مقاس محددة
   getVariantStock(product, color, size) {
     if (!product) return 0;
     if (!this.hasVariantMatrix(product)) return Number(product.stock) || 0;
@@ -528,7 +553,10 @@ const Store = {
     syncNodeToFirebase(DB_KEYS.settings, updated);
   },
 
-  getAds() { return JSON.parse(localStorage.getItem(DB_KEYS.ads) || "[]"); },
+  getAds() { 
+    const val = JSON.parse(localStorage.getItem(DB_KEYS.ads) || "[]");
+    return firebaseValueToArray(val);
+  },
   saveAds(list) {
     localStorage.setItem(DB_KEYS.ads, JSON.stringify(list));
     syncNodeToFirebase(DB_KEYS.ads, list);
@@ -545,8 +573,6 @@ const Store = {
     localStorage.setItem(DB_KEYS.cart, JSON.stringify(cart));
     document.dispatchEvent(new CustomEvent("cart:updated"));
   },
-  // itemKey يجب أن يكون فريدًا لكل تركيبة منتج+لون+مقاس (أو +خيار نصي قديم)
-  // meta: { color, size, variant }
   addToCart(itemKey, qty, meta) {
     meta = meta || {};
     const cart = this.getCart();

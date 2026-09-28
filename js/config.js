@@ -29,17 +29,6 @@ const STORE_CONFIG = {
 
   currencySymbol: "د.ع",
 
-  // === Firebase Web App / Authentication ===
-  // هذه القيم تُؤخذ من Firebase Console > Project settings > Your apps > Web app.
-  firebaseApiKey: "",
-  firebaseAuthDomain: "",
-  firebaseProjectId: "",
-  firebaseStorageBucket: "",
-  firebaseMessagingSenderId: "",
-  firebaseAppId: "",
-  // بريد/عناوين حسابات الأدمن المسموح لها بدخول الواجهة.
-  // هذا ليس بديلًا عن Security Rules؛ سنضيفها في المرحلة التالية.
-  adminEmails: [],
 // === Firebase Web App / Authentication ===
   // هذه القيم تُؤخذ من Firebase Console > Project settings > Your apps > Web app.
   firebaseApiKey: "AIzaSyAnAHTDxGlWwBfe9Ta8ttQ8QZWLA5ZNYw8",
@@ -51,6 +40,7 @@ const STORE_CONFIG = {
   // بريد/عناوين حسابات الأدمن المسموح لها بدخول الواجهة.
   // هذا ليس بديلًا عن Security Rules؛ سنضيفها في المرحلة التالية.
   adminEmails: ["a@email.com"],
+
 
   // === Firebase Realtime Database (اختياري) ===
   // اتركه فارغًا للعمل بدون مزامنة سحابية (localStorage فقط، مناسب كنسخة

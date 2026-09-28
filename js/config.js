@@ -46,7 +46,7 @@ const STORE_CONFIG = {
   // اتركه فارغًا للعمل بدون مزامنة سحابية (localStorage فقط، مناسب كنسخة
   // تجريبية أو متجر بزائر واحد لكل جهاز). عبّئه برابط قاعدة بيانات Firebase
   // الخاصة بك لتفعيل المزامنة بين الأجهزة.
- firebaseDatabaseURL: "https://test3-2a6de-default-rtdb.europe-west1.firebasedatabase.app",
+ firebaseDatabaseURL: "https://test3-2a6de-default-rtdb.europe-west1.firebasedatabase.app/",
 
   // === ImgBB (اختياري) — رفع صور المنتجات/الأقسام/الإعلانات من لوحة التحكم ===
   // احصل على مفتاح مجاني من https://api.imgbb.com/

@@ -1,7 +1,7 @@
 /* ==========================================================================
    admin.js
    منطق لوحة تحكم الأدمن بالكامل (admin.html). 
-   تم التحديث: إزالة قسم الخيارات القديم بالكامل، إصلاح تداخل الألوان، وإضافة منطق القائمة الجانبية.
+   تم التحديث: تحسين معالجة الصور وضغط الأبعاد لتوفير باقة ImageKit وزيادة السرعة.
    ========================================================================== */
 
 let editingProductId = null;
@@ -64,7 +64,7 @@ async function uploadToImgBB(file, isBanner = false) {
     formData.append("image", file);
 
     // 1. الرفع الفعلي لـ ImgBB
-    const response = await fetch("https://api.imgbb.com/1/upload?key=" + apiKey, {
+    const response = await fetch("https://api.imgbb.com/1/upload?key=" + encodeURIComponent(apiKey), {
       method: "POST",
       body: formData
     });
@@ -75,31 +75,26 @@ async function uploadToImgBB(file, isBanner = false) {
     }
 
     const rawUrl = data.data.url;
-
-    const imageKitEndpoint = (typeof STORE_CONFIG !== "undefined" && STORE_CONFIG.imageKitEndpoint || "").trim();
+    const imageKitEndpoint = (typeof STORE_CONFIG !== "undefined" && STORE_CONFIG.imageKitEndpoint || "").trim().replace(/\/+$/, "");
 
     // إن لم يتم إعداد ImageKit، نستخدم رابط ImgBB مباشرة
     if (!imageKitEndpoint) {
       return rawUrl;
     }
 
-    // 2. معالجة الرابط بأمان
-    let cleanPath = rawUrl.replace(/^https?:\/\//i, "");
-
-    if (cleanPath.startsWith("i.ibb.co/")) {
-      cleanPath = cleanPath.substring("i.ibb.co/".length);
+    // 2. مطابقة رابط ImgBB
+    const match = rawUrl.match(/^https?:\/\/i\.ibb\.co\/(.+)$/);
+    if (!match) {
+      return rawUrl;
     }
 
-    // 3. تحديد الأبعاد والتحويل الذكي لـ WebP (f-auto)
+    // 3. تحسين استهلاك ImageKit: w-500 بجودة 75 للصور العادية وبنرات بحجم مدروس 1000px
     const transform = isBanner
-      ? "tr:w-1200,q-90,f-auto"
-      : "tr:w-800,q-80,f-auto";
+      ? "tr:w-1000,q-80,f-auto"
+      : "tr:w-500,q-75,f-auto";
 
     // 4. بناء الرابط النهائي عبر ImageKit CDN
-    const cdnUrl = `${imageKitEndpoint}/${transform}/${cleanPath}`;
-
-    // 5. إرجاع الرابط
-    return cdnUrl;
+    return imageKitEndpoint + "/" + transform + "/" + match[1];
 }
 
 /* ---------------------------------------------------------------------- */
@@ -129,7 +124,6 @@ window.toggleAdminSidebar = function() {
   const sidebar = document.querySelector('.admin-sidebar');
   const overlay = document.querySelector('.sidebar-overlay');
   
-  // استخدام open بدلاً من active ليتطابق مع الـ CSS الخاص بلوحة الأدمن
   if (sidebar) sidebar.classList.toggle('open');
   if (overlay) overlay.classList.toggle('active');
 };
@@ -237,7 +231,6 @@ function renderColorsList() {
   if (!pendingColors.length) {
     list.innerHTML = '<p class="field-hint" style="margin:0;">لا يوجد ألوان مضافة. اضغط "+ إضافة لون" إن كان المنتج يحتاج تمييزًا بالألوان.</p>';
   } else {
-    // بناء HTML للألوان باستخدام Flexbox لتجنب التداخل
     list.innerHTML = pendingColors.map(function (c, idx) {
       return (
         '<div class="color-row" style="display:flex;flex-wrap:wrap;align-items:center;gap:15px;background:var(--olive-50);padding:15px;border-radius:8px;border:1px solid var(--line);margin-bottom:10px;">' +
@@ -480,7 +473,6 @@ function closeProductModal() {
 function saveProductForm(e) {
   e.preventDefault();
   
-  // الألوان والمقاسات والمخزون لكل تركيبة
   const cleanColors = pendingColors
     .filter(function (c) { return c.name && c.name.trim(); })
     .map(function (c) { return { name: c.name.trim(), hex: c.hex || "#7c9a4c", image: c.image || null }; });
@@ -774,7 +766,7 @@ function wireAdModal() {
       const file = imageInput.files[0];
       if (!file) return;
       try {
-        showToast("جاري رفع الإعلان بدقة عالية واحترافية...");
+        showToast("جاري رفع الإعلان بدقة محسنة وسريعة...");
         const imageUrl = await uploadToImgBB(file, true);
         pendingAdImage = imageUrl;
         const preview = document.getElementById("adImagePreview");

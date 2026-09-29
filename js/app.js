@@ -7,7 +7,7 @@
 const NAV_LINKS = [
   { href: "index.html", label: "الرئيسية", key: "home", icon: "home" },
   { href: "products.html", label: "المنتجات", key: "products", icon: "box" },
-  { href: "categories.html", label: "الأقسام", key: "categories", icon: "layers" }, // تم التوجيه إلى صفحة الأقسام المستقلة
+  { href: "categories.html", label: "الأقسام", key: "categories", icon: "layers" }, // صفحة الأقسام المستقلة
   { href: "about.html", label: "من نحن", key: "about", icon: "info" },
   { href: "contact.html", label: "تواصل معنا", key: "contact", icon: "phone" }
 ];
@@ -96,6 +96,9 @@ function renderSidebarNav(activeKey) {
   const allCategories = Store.getCategories();
   const mainCategories = allCategories.filter(c => !c.parentId);
 
+  // التحقق إن كان المستخدم حالياً داخل صفحة المتجر products.html
+  const isShopPage = window.location.pathname.endsWith("products.html");
+
   if (mainCategories.length > 0) {
       html += '<li style="margin-top:15px; border-top:1px solid var(--line); padding-top:15px;">';
       html += '<div style="font-weight:bold; color:var(--ink-400); font-size:0.85rem; margin-bottom:10px; padding:0 12px;">تصفح الأقسام</div>';
@@ -112,13 +115,18 @@ function renderSidebarNav(activeKey) {
               html += '</button>';
               
               html += '<div class="sidebar-submenu" style="padding-right:35px; margin-top:5px; display:none;">';
-              html += '<a href="products.html?cat=' + mainCat.id + '" style="display:block; padding:8px; color:var(--olive-600); text-decoration:none; font-size:0.9rem; margin-bottom:4px;">عرض الكل (' + mainCat.name + ')</a>';
+              
+              const allLink = isShopPage ? `javascript:updateCategory('${mainCat.id}');toggleSidebar();` : `products.html?cat=${mainCat.id}`;
+              html += '<a href="' + allLink + '" style="display:block; padding:8px; color:var(--olive-600); text-decoration:none; font-size:0.9rem; margin-bottom:4px;">عرض الكل (' + mainCat.name + ')</a>';
+              
               subCategories.forEach(subCat => {
-                  html += '<a href="products.html?cat=' + subCat.id + '" style="display:block; padding:8px; color:var(--ink-600); text-decoration:none; font-size:0.9rem; margin-bottom:4px;">- ' + subCat.name + '</a>';
+                  const subLink = isShopPage ? `javascript:updateCategory('${subCat.id}');toggleSidebar();` : `products.html?cat=${subCat.id}`;
+                  html += '<a href="' + subLink + '" style="display:block; padding:8px; color:var(--ink-600); text-decoration:none; font-size:0.9rem; margin-bottom:4px;">- ' + subCat.name + '</a>';
               });
               html += '</div>';
           } else {
-              html += '<a href="products.html?cat=' + mainCat.id + '" style="display:flex; align-items:center; gap:10px; padding:12px; border-radius:10px; color:var(--ink-700); font-weight:600; text-decoration:none;">' + iconSvg(mainCat.icon || "box") + mainCat.name + '</a>';
+              const link = isShopPage ? `javascript:updateCategory('${mainCat.id}');toggleSidebar();` : `products.html?cat=${mainCat.id}`;
+              html += '<a href="' + link + '" style="display:flex; align-items:center; gap:10px; padding:12px; border-radius:10px; color:var(--ink-700); font-weight:600; text-decoration:none;">' + iconSvg(mainCat.icon || "box") + mainCat.name + '</a>';
           }
           html += '</div>';
       });

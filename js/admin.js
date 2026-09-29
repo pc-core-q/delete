@@ -1,7 +1,7 @@
 /* ==========================================================================
    admin.js
    منطق لوحة تحكم الأدمن بالكامل (admin.html). 
-   تم التحديث: رفع دقة الصور إلى معايير عالية ونقية مع كفاءة استهلاك الباقة.
+   تم التحديث: دعم بيانات الزبون والتوصيل في سجل الطلبات وحماية النصوص بدقة.
    ========================================================================== */
 
 let editingProductId = null;
@@ -13,6 +13,19 @@ let pendingAdImage = null;
 let pendingColors = [];      // [{ name, hex, image }]
 let pendingSizes = [];       // ["S", "M", ...]
 let pendingInventory = {};   // { "لون||مقاس": qty }
+
+/* ---------------------------------------------------------------------- */
+/* حماية وفلترة النصوص من الكسر (Escaping)                                 */
+/* ---------------------------------------------------------------------- */
+function escapeHtml(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
 async function initAdminPage() {
   const app = document.getElementById("adminApp");
@@ -59,46 +72,46 @@ async function initAdminPage() {
 /* ---------------------------------------------------------------------- */
 
 async function uploadToImgBB(file, isBanner = false) {
-    const apiKey = (typeof STORE_CONFIG !== "undefined" && STORE_CONFIG.imgbbApiKey || "").trim();
-    if (!apiKey) {
-      throw new Error("لم يتم إعداد مفتاح ImgBB بعد. أضِف imgbbApiKey في js/config.js لتفعيل رفع الصور.");
-    }
+  const apiKey = (typeof STORE_CONFIG !== "undefined" && STORE_CONFIG.imgbbApiKey || "").trim();
+  if (!apiKey) {
+    throw new Error("لم يتم إعداد مفتاح ImgBB بعد. أضِف imgbbApiKey في js/config.js لتفعيل رفع الصور.");
+  }
 
-    const formData = new FormData();
-    formData.append("image", file);
+  const formData = new FormData();
+  formData.append("image", file);
 
-    // 1. الرفع الفعلي لـ ImgBB
-    const response = await fetch("https://api.imgbb.com/1/upload?key=" + encodeURIComponent(apiKey), {
-      method: "POST",
-      body: formData
-    });
+  // 1. الرفع الفعلي لـ ImgBB
+  const response = await fetch("https://api.imgbb.com/1/upload?key=" + encodeURIComponent(apiKey), {
+    method: "POST",
+    body: formData
+  });
 
-    const data = await response.json();
-    if (!data.success) {
-      throw new Error((data.error && data.error.message) || "فشل رفع الصورة إلى ImgBB.");
-    }
+  const data = await response.json();
+  if (!data.success) {
+    throw new Error((data.error && data.error.message) || "فشل رفع الصورة إلى ImgBB.");
+  }
 
-    const rawUrl = data.data.url;
-    const imageKitEndpoint = (typeof STORE_CONFIG !== "undefined" && STORE_CONFIG.imageKitEndpoint || "").trim().replace(/\/+$/, "");
+  const rawUrl = data.data.url;
+  const imageKitEndpoint = (typeof STORE_CONFIG !== "undefined" && STORE_CONFIG.imageKitEndpoint || "").trim().replace(/\/+$/, "");
 
-    // إن لم يتم إعداد ImageKit، نستخدم رابط ImgBB مباشرة
-    if (!imageKitEndpoint) {
-      return rawUrl;
-    }
+  // إن لم يتم إعداد ImageKit، نستخدم رابط ImgBB مباشرة
+  if (!imageKitEndpoint) {
+    return rawUrl;
+  }
 
-    // 2. مطابقة رابط ImgBB
-    const match = rawUrl.match(/^https?:\/\/i\.ibb\.co\/(.+)$/);
-    if (!match) {
-      return rawUrl;
-    }
+  // 2. مطابقة رابط ImgBB
+  const match = rawUrl.match(/^https?:\/\/i\.ibb\.co\/(.+)$/);
+  if (!match) {
+    return rawUrl;
+  }
 
-    // 3. ضبط الدقة العالية: w-800 بجودة 85 للصور العادية وبنرات 1200 بجودة 90
-    const transform = isBanner
-      ? "tr:w-1200,q-90,f-auto"
-      : "tr:w-800,q-85,f-auto";
+  // 3. ضبط الدقة العالية: w-800 بجودة 85 للصور العادية وبنرات 1200 بجودة 90
+  const transform = isBanner
+    ? "tr:w-1200,q-90,f-auto"
+    : "tr:w-800,q-85,f-auto";
 
-    // 4. بناء الرابط النهائي عبر ImageKit CDN
-    return imageKitEndpoint + "/" + transform + "/" + match[1];
+  // 4. بناء الرابط النهائي عبر ImageKit CDN
+  return imageKitEndpoint + "/" + transform + "/" + match[1];
 }
 
 /* ---------------------------------------------------------------------- */
@@ -185,8 +198,8 @@ function renderProductsTable() {
     return (
       "<tr>" +
         "<td>" + img + "</td>" +
-        "<td>" + p.name + (tags.length ? ' <span class="field-hint" style="color:var(--danger);">(' + tags.join(" / ") + ")</span>" : "") + "</td>" +
-        "<td>" + Store.getCategoryName(p.categoryId) + "</td>" +
+        "<td>" + escapeHtml(p.name) + (tags.length ? ' <span class="field-hint" style="color:var(--danger);">(' + tags.join(" / ") + ")</span>" : "") + "</td>" +
+        "<td>" + escapeHtml(Store.getCategoryName(p.categoryId)) + "</td>" +
         "<td>" + formatPrice(p.price) + "</td>" +
         "<td>" + p.stock + "</td>" +
         "<td>" + statusPill + "</td>" +
@@ -214,7 +227,7 @@ function populateCategorySelect() {
   const select = document.getElementById("productCategorySelect");
   if (!select) return;
   select.innerHTML = Store.getCategories().map(function (c) {
-    return '<option value="' + c.id + '">' + c.name + "</option>";
+    return '<option value="' + c.id + '">' + escapeHtml(c.name) + "</option>";
   }).join("");
 }
 
@@ -241,7 +254,7 @@ function renderColorsList() {
           
           '<div style="flex:1;min-width:140px;display:flex;flex-direction:column;gap:5px;">' +
             '<label style="font-size:0.8rem;color:var(--ink-400);">اسم اللون</label>' +
-            '<input type="text" placeholder="مثال: أسود" value="' + (c.name || "") + '" data-color-idx="' + idx + '" class="color-name-input" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;background:#fff;">' +
+            '<input type="text" placeholder="مثال: أسود" value="' + escapeHtml(c.name || "") + '" data-color-idx="' + idx + '" class="color-name-input" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;background:#fff;">' +
           '</div>' +
           
           '<div style="display:flex;flex-direction:column;gap:5px;align-items:center;">' +
@@ -332,9 +345,9 @@ function renderInventoryGrid() {
   const colKeys = sizes.length ? sizes : [null];
 
   let html = '<table style="width:100%;border-collapse:collapse;font-size:.85rem;">';
-  html += "<tr><th style='text-align:right;padding:6px;'></th>" + colKeys.map(function (s) { return "<th style='padding:6px;'>" + (s || "الكمية") + "</th>"; }).join("") + "</tr>";
+  html += "<tr><th style='text-align:right;padding:6px;'></th>" + colKeys.map(function (s) { return "<th style='padding:6px;'>" + escapeHtml(s || "الكمية") + "</th>"; }).join("") + "</tr>";
   rowKeys.forEach(function (color) {
-    html += "<tr><td style='padding:6px;font-weight:600;'>" + (color || "الكمية") + "</td>";
+    html += "<tr><td style='padding:6px;font-weight:600;'>" + escapeHtml(color || "الكمية") + "</td>";
     colKeys.forEach(function (size) {
       const key = inventoryKeyFor(color, size);
       const val = Number(pendingInventory[key]) || 0;
@@ -400,7 +413,7 @@ function wireProductModal() {
     removeImgBtn.addEventListener("click", function () {
       pendingProductImage = null;
       if (document.getElementById("productImageInput")) {
-          document.getElementById("productImageInput").value = "";
+        document.getElementById("productImageInput").value = "";
       }
       document.getElementById("productImagePreview").innerHTML = iconSvg("box");
     });
@@ -555,8 +568,8 @@ function renderCategoriesTable() {
     
     const parent = c.parentId ? categories.find(function(x) { return x.id === c.parentId; }) : null;
     const displayName = parent 
-        ? c.name + '<br><small style="color:#888;">↳ فرعي من: ' + parent.name + '</small>' 
-        : '<strong>' + c.name + '</strong>';
+      ? escapeHtml(c.name) + '<br><small style="color:#888;">↳ فرعي من: ' + escapeHtml(parent.name) + '</small>' 
+      : '<strong>' + escapeHtml(c.name) + '</strong>';
 
     return (
       "<tr>" +
@@ -630,7 +643,7 @@ function wireCategoryModal() {
     removeImgBtn.addEventListener("click", function () {
       pendingCategoryImage = null;
       if (document.getElementById("categoryImageInput")) {
-          document.getElementById("categoryImageInput").value = "";
+        document.getElementById("categoryImageInput").value = "";
       }
       document.getElementById("categoryImagePreview").innerHTML = iconSvg("box");
     });
@@ -664,7 +677,7 @@ function openCategoryModal(categoryId) {
   
   parentSelect.innerHTML = '<option value="">-- قسم رئيسي مستقل --</option>' +
     allCats.filter(function(c) { return c.id !== categoryId && !c.parentId; })
-           .map(function(c) { return '<option value="' + c.id + '">' + c.name + '</option>'; }).join("");
+           .map(function(c) { return '<option value="' + c.id + '">' + escapeHtml(c.name) + '</option>'; }).join("");
 
   if (categoryId) {
     const c = allCats.find(function (cc) { return cc.id === categoryId; });
@@ -731,7 +744,7 @@ function renderAdsTable() {
 
   tbody.innerHTML = ads.map(function (ad) {
     const img = ad.image ? '<img src="' + ad.image + '" style="width:80px;height:40px;border-radius:4px;object-fit:cover;">' : '<div class="admin-table-icon">' + iconSvg("image") + "</div>";
-    const link = ad.link ? '<a href="' + ad.link + '" target="_blank" style="color:var(--olive-700);text-decoration:underline;">عرض الرابط</a>' : '-';
+    const link = ad.link ? '<a href="' + escapeHtml(ad.link) + '" target="_blank" style="color:var(--olive-700);text-decoration:underline;">عرض الرابط</a>' : '-';
     
     return (
       "<tr>" +
@@ -788,7 +801,7 @@ function wireAdModal() {
     removeImgBtn.addEventListener("click", function () {
       pendingAdImage = null;
       if (document.getElementById("adImageInput")) {
-          document.getElementById("adImageInput").value = "";
+        document.getElementById("adImageInput").value = "";
       }
       const preview = document.getElementById("adImagePreview");
       if(preview) preview.innerHTML = "";
@@ -816,8 +829,8 @@ function closeAdModal() {
 function saveAdForm(e) {
   e.preventDefault();
   if (!pendingAdImage) {
-      showToast("يرجى رفع صورة للإعلان");
-      return;
+    showToast("يرجى رفع صورة للإعلان");
+    return;
   }
   
   const data = {
@@ -842,22 +855,36 @@ function renderOrdersTable() {
   const orders = Store.getOrders();
 
   if (!orders.length) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:30px;color:var(--ink-300);">لا توجد طلبات مسجّلة بعد</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--ink-300);">لا توجد طلبات مسجّلة بعد</td></tr>';
     return;
   }
 
   tbody.innerHTML = orders.map(function (o) {
     const date = new Date(o.date).toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" });
-    const summary = o.items.map(function (it) {
+    const summary = (o.items || []).map(function (it) {
       const opts = [];
-      if (it.color) opts.push(it.color);
-      if (it.size) opts.push(it.size);
-      if (!opts.length && it.variant) opts.push(it.variant);
-      return it.name + (opts.length ? " (" + opts.join(" / ") + ")" : "") + " ×" + it.qty;
+      if (it.color) opts.push(escapeHtml(it.color));
+      if (it.size) opts.push(escapeHtml(it.size));
+      if (!opts.length && it.variant) opts.push(escapeHtml(it.variant));
+      return escapeHtml(it.name) + (opts.length ? " (" + opts.join(" / ") + ")" : "") + " ×" + it.qty;
     }).join("، ");
+
+    // إعداد بطاقة تفاصيل الزبون والعنوان
+    const cust = o.customer || {};
+    let customerHtml = '<span style="color:var(--ink-400);font-size:.85rem;">بدون بيانات توصيل</span>';
+    if (cust.phone || cust.gov) {
+      customerHtml = 
+        '<div style="font-size:.85rem;line-height:1.4;">' +
+          (cust.phone ? '<a href="tel:' + escapeHtml(cust.phone) + '" style="font-weight:700;color:var(--olive-700);text-decoration:underline;" dir="ltr">' + escapeHtml(cust.phone) + '</a><br>' : '') +
+          '<span>' + escapeHtml(cust.gov || "") + (cust.area ? ' — ' + escapeHtml(cust.area) : '') + '</span>' +
+          (cust.landmark && cust.landmark !== "لا يوجد" ? '<br><small style="color:var(--ink-500);">' + escapeHtml(cust.landmark) + '</small>' : '') +
+        '</div>';
+    }
+
     return (
       "<tr>" +
         "<td>" + date + "</td>" +
+        "<td>" + customerHtml + "</td>" +
         "<td>" + (o.type === "cart" ? "سلة كاملة" : "منتج واحد") + "</td>" +
         "<td>" + summary + "</td>" +
         "<td>" + formatPrice(o.total) + "</td>" +

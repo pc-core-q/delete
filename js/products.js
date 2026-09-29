@@ -68,9 +68,18 @@ function renderProductCard(product) {
   );
 }
 
-function quickAddToCart(productId) {
-  const product = Store.getProduct(productId);
+async function quickAddToCart(productId) {
+  // البحث محلياً أولاً، وفي حال عدم وجوده يتم جلبه فوراً
+  let product = Store.getProduct(productId);
+  if (!product && typeof shopState !== "undefined" && shopState.pagination && shopState.pagination.products) {
+    product = shopState.pagination.products.find(function(p) { return p.id === productId; });
+  }
+  if (!product) {
+    product = await Store.loadProductById(productId);
+  }
+
   if (!product || !Store.isProductAvailable(product)) return;
+
   const hasOptions = (product.variants && product.variants.length > 0) || Store.hasVariantMatrix(product);
   if (hasOptions) {
       window.location.href = 'product.html?id=' + productId;
@@ -259,7 +268,7 @@ async function fetchNextShopBatch(token) {
       if (!page.products.length) {
         const all = await Store.loadAllProductsFromFirebase();
         if (token !== page.token) return;
-        page.products = all.slice();
+        page.products = (all || []).slice();
       }
       page.done = true;
       return;
@@ -334,6 +343,23 @@ async function renderShopResults(options) {
   if (token !== shopState.pagination.token && !options.reset) return;
 
   let list = shopState.pagination.products.slice();
+
+  // تصفية نتائج البحث والترتيب حتى عند اختيار قسم معين
+  if (shopState.categoryId !== "all") {
+    const categories = Store.getCategories();
+    const selected = categories.find(function(c) { return c.id === shopState.categoryId; });
+    const allowedIds = new Set([shopState.categoryId]);
+    if (selected && !selected.parentId) {
+      categories.filter(function(c) { return c.parentId === selected.id; }).forEach(function(c) { allowedIds.add(c.id); });
+    }
+    list = list.filter(function(p) { return allowedIds.has(p.categoryId); });
+  }
+
+  if (shopState.filterMode) {
+    if (shopState.filterMode === "featured") list = list.filter(function(p) { return !!p.featured; });
+    else if (shopState.filterMode === "offer") list = list.filter(function(p) { return !!p.isOffer; });
+    else if (shopState.filterMode === "new") list = list.filter(function(p) { return !!p.isNew; });
+  }
 
   if (shopState.search) {
     const q = shopState.search.toLowerCase();

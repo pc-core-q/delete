@@ -9,7 +9,7 @@
   <title>الرئيسية | متجرك الإلكتروني</title>
   <meta name="description" content="تصفّح منتجاتنا واطلب مباشرة عبر واتساب بسهولة وسرعة.">
   <link rel="icon" href="assets/logo/logo.png">
-  <link rel="stylesheet" href="css/style.css?v=39">
+  <link rel="stylesheet" href="css/style.css?v=40">
 <style>
   /* === التعديلات التنسيقية وسلايدر العروض الترويجية === */
   .hero-art { background: none !important; box-shadow: none !important; border-radius: 0 !important; width: 100% !important; }
@@ -225,13 +225,13 @@
   
 <div id="site-footer"></div>
 
-<script src="js/config.js?v=39"></script>
-<script src="js/icons.js?v=39"></script>
+<script src="js/config.js?v=40"></script>
+<script src="js/icons.js?v=40"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="js/store.js?v=39"></script>
-<script src="js/whatsapp.js?v=39"></script>
-<script src="js/app.js?v=39"></script>
+<script src="js/store.js?v=40"></script>
+<script src="js/whatsapp.js?v=40"></script>
+<script src="js/app.js?v=40"></script>
 <script>
   let slideInterval = null;
 
@@ -352,7 +352,7 @@
       let socialHtml = "";
       if (s.whatsapp) socialHtml += '<a href="https://wa.me/' + whatsappDigitsOnly(s.whatsapp) + '" target="_blank" rel="noopener">' + iconSvg("whatsapp") + "واتساب</a>";
       if (s.instagram) socialHtml += '<a href="' + s.instagram + '" target="_blank" rel="noopener">' + iconSvg("instagram") + 'انستقرام</a>';
-      if (s.tiktok) socialHtml += '<a href="' + s.tiktok + '" target="_blank" rel="noopener"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 448 512" fill="currentColor" style="margin-left: 8px;"><path d="M448,209.91a210.06,210.06,0,0,1-122.77-39.25V349.38A162.55,162.55,0,1,1,185,188.31V278.2a74.62,74.62,0,1,0,52.23,71.18V0l88,0a121.18,121.18,0,0,0,1.86,22.17h0A122.18,122.18,0,0,0,381,102.39a121.43,121.43,0,0,0,67,20.14Z"/></svg>تيك توك</a>';
+      if (s.tiktok) socialHtml += '<a href="' + s.tiktok + '" target="_blank" rel="noopener">' + iconSvg("tiktok") + 'تيك توك</a>';
       homeSocial.innerHTML = socialHtml || '<span style="opacity:.6;">لم يتم إعداد روابط التواصل بعد.</span>';
     }
 

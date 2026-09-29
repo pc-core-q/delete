@@ -1,10 +1,10 @@
 /* ==========================================================================
-   products.js (النسخة المحدثة — إصلاح روابط الأقسام والتنقل السلس)
+   products.js (النسخة المحسنة — أداء فائق وسرعة ظهور بدون استهلاك الباقات)
    ========================================================================== */
 
 function productMediaHtml(product) {
   if (product.image) {
-    return '<img src="' + product.image + '" alt="' + product.name + '" loading="lazy">';
+    return '<img src="' + product.image + '" alt="' + (product.name || "") + '" class="product-media-img" loading="lazy" decoding="async">';
   }
   const cat = Store.getCategories().find(function (c) { return c.id === product.categoryId; });
   const key = cat ? cat.icon : "box";
@@ -138,6 +138,13 @@ function initShopPage() {
     });
   }
 
+  // عرض البيانات المتوفرة محلياً مسبقاً بشكل فوري دون انتظار أي جلب شبكي
+  const localProducts = Store.getProducts();
+  if (localProducts.length > 0 && !shopState.search && shopState.categoryId === "all" && !shopState.filterMode) {
+    shopState.pagination.products = localProducts.slice(0, SHOP_PAGE_SIZE);
+    renderGridInto("shopGrid", shopState.pagination.products);
+  }
+
   renderCategoryFilterPanel();
   renderShopResults({ reset: true });
 }
@@ -149,7 +156,6 @@ window.updateCategory = function(catId) {
     shopState.categoryId = catId;
     shopState.filterMode = "";
     
-    // تحديث شريط الرابط دون مسحه ليبقى القسم محفوظاً عند المشاركة أو التحديث
     const url = new URL(window.location);
     if (catId && catId !== "all") {
       url.searchParams.set("cat", catId);
@@ -229,7 +235,6 @@ async function fetchNextShopBatch(token) {
   showShopLoading(true);
 
   try {
-    // عند البحث أو الترتيب، نعتمد جلب الكتالوج الكامل
     if (shopState.search || shopState.sort !== "default") {
       if (!page.products.length) {
         const all = await Store.loadAllProductsFromFirebase();
@@ -260,7 +265,6 @@ async function fetchNextShopBatch(token) {
       page.cursors[sourceKey] = result.nextCursor;
       page.done = result.done;
     } else {
-      // جلب منتجات القسم المحدد وتفرعاته
       const categories = Store.getCategories();
       const selected = categories.find(function(c) { return c.id === shopState.categoryId; });
       const ids = [shopState.categoryId];
@@ -386,7 +390,7 @@ async function initHomeCollections() {
     const categories = Store.getCategories();
     const mainCategories = categories.filter(function(c) { return !c.parentId; });
     catEl.innerHTML = mainCategories.map(function (c) {
-      const media = c.image ? '<img src="' + c.image + '" alt="' + c.name + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">' : iconSvg(c.icon || "box");
+      const media = c.image ? '<img src="' + c.image + '" alt="' + c.name + '" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">' : iconSvg(c.icon || "box");
       return '<a href="products.html?cat=' + c.id + '" class="cat-chip"><span class="cat-icon" style="padding:0;overflow:hidden;display:flex;align-items:center;justify-content:center;">' + media + '</span><span class="name">' + c.name + "</span></a>";
     }).join("");
   }
@@ -558,7 +562,7 @@ async function initProductDetailPage() {
         const mediaContainer = document.querySelector(".detail-media");
         if (mediaContainer) {
           mediaContainer.innerHTML = (colorObj && colorObj.image)
-            ? '<img src="' + colorObj.image + '" style="width:100%;height:100%;object-fit:cover;border-radius:16px;">'
+            ? '<img src="' + colorObj.image + '" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;border-radius:16px;">'
             : productMediaHtml(product);
         }
         refreshAvailabilityUI();
@@ -608,7 +612,7 @@ async function initProductDetailPage() {
         li.style.fontWeight = "700";
         const mediaContainer = document.querySelector(".detail-media");
         if (product.variantImages && product.variantImages[selectedVariant]) {
-          mediaContainer.innerHTML = '<img src="' + product.variantImages[selectedVariant] + '" style="width:100%;height:100%;object-fit:cover;border-radius:16px;">';
+          mediaContainer.innerHTML = '<img src="' + product.variantImages[selectedVariant] + '" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;border-radius:16px;">';
         } else {
           mediaContainer.innerHTML = productMediaHtml(product);
         }

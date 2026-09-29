@@ -119,7 +119,6 @@ async function pullFromFirebase() {
       const ordersRaw = await fetchNode(DB_KEYS.orders);
       if (ordersRaw !== null) {
         const ordersList = firebaseValueToArray(ordersRaw);
-        // ترتيب الطلبات من الأحدث إلى الأقدم بناءً على التاريخ
         ordersList.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
         localStorage.setItem(DB_KEYS.orders, JSON.stringify(ordersList));
       }
@@ -611,6 +610,24 @@ const Store = {
   cartCount() { return this.getCart().reduce((sum, l) => sum + l.qty, 0); },
 
   getOrders() { return JSON.parse(localStorage.getItem(DB_KEYS.orders) || "[]"); },
+  
+  // دالة لجلب كل الطلبات للأدمن مباشرة من Firebase بدون كاش
+  async loadOrdersFromFirebase() {
+    if (!firebaseEnabled) return this.getOrders();
+    try {
+      const ordersRaw = await fetchNode(DB_KEYS.orders);
+      if (ordersRaw !== null) {
+        const ordersList = firebaseValueToArray(ordersRaw);
+        ordersList.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+        localStorage.setItem(DB_KEYS.orders, JSON.stringify(ordersList));
+        return ordersList;
+      }
+    } catch (e) {
+      console.error("Firebase Orders Fetch Error:", e);
+    }
+    return this.getOrders();
+  },
+
   logOrder(order) {
     const list = this.getOrders();
     const newOrder = Object.assign({ id: uid("ord"), date: new Date().toISOString() }, order);

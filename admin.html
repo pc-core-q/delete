@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0">
   <title>لوحة تحكم الأدمن | متجرك الإلكتروني</title>
   <link rel="icon" href="assets/logo/logo.png">
-  <link rel="stylesheet" href="css/style.css?v=35">
+  <link rel="stylesheet" href="css/style.css?v=39">
 <style>
   /* === حماية ضد تمدد الصفحة وتنسيق المودال والأزرار === */
   html, body {
@@ -168,7 +168,15 @@
         <div class="panel-head"><h3 style="margin:0;">آخر الطلبات عبر واتساب</h3></div>
         <div style="overflow-x:auto;">
           <table class="admin-table">
-            <thead><tr><th>التاريخ</th><th>النوع</th><th>المنتجات</th><th>الإجمالي</th></tr></thead>
+            <thead>
+              <tr>
+                <th>التاريخ</th>
+                <th>الزبون / العنوان</th>
+                <th>النوع</th>
+                <th>المنتجات</th>
+                <th>الإجمالي</th>
+              </tr>
+            </thead>
             <tbody id="ordersTableBody"></tbody>
           </table>
         </div>
@@ -234,7 +242,15 @@
         <p style="margin-top:-8px;">هذا سجلّ استرشادي فقط لكل طلب تم فتحه عبر واتساب من الموقع — إتمام الطلب الفعلي يجري عبر محادثة واتساب مباشرة.</p>
         <div style="overflow-x:auto;">
           <table class="admin-table">
-            <thead><tr><th>التاريخ</th><th>النوع</th><th>المنتجات</th><th>الإجمالي</th></tr></thead>
+            <thead>
+              <tr>
+                <th>التاريخ</th>
+                <th>الزبون / العنوان</th>
+                <th>النوع</th>
+                <th>المنتجات</th>
+                <th>الإجمالي</th>
+              </tr>
+            </thead>
             <tbody id="ordersTableBody2"></tbody>
           </table>
         </div>
@@ -383,16 +399,16 @@
   </div>
 </div>
 
-<script src="js/config.js?v=35"></script>
-<script src="js/icons.js?v=35"></script>
+<script src="js/config.js?v=39"></script>
+<script src="js/icons.js?v=39"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="js/store.js?v=35"></script>
-<script src="js/whatsapp.js?v=35"></script>
-<script src="js/app.js?v=35"></script>
-<script src="js/auth.js?v=10"></script>
-<script src="js/admin.js?v=30"></script>
+<script src="js/store.js?v=39"></script>
+<script src="js/whatsapp.js?v=39"></script>
+<script src="js/app.js?v=39"></script>
+<script src="js/auth.js?v=39"></script>
+<script src="js/admin.js?v=39"></script>
 <script>
   // تعبئة الأيقونات الثابتة
   document.querySelector(".admin-nav").innerHTML = document.querySelector(".admin-nav").innerHTML

@@ -9,7 +9,7 @@
   <title>الرئيسية | متجرك الإلكتروني</title>
   <meta name="description" content="تصفّح منتجاتنا واطلب مباشرة عبر واتساب بسهولة وسرعة.">
   <link rel="icon" href="assets/logo/logo.png">
-  <link rel="stylesheet" href="css/style.css?v=38">
+  <link rel="stylesheet" href="css/style.css?v=39">
 <style>
   /* === التعديلات التنسيقية وسلايدر العروض الترويجية === */
   .hero-art { background: none !important; box-shadow: none !important; border-radius: 0 !important; width: 100% !important; }
@@ -225,13 +225,13 @@
   
 <div id="site-footer"></div>
 
-<script src="js/config.js?v=38"></script>
-<script src="js/icons.js?v=38"></script>
+<script src="js/config.js?v=39"></script>
+<script src="js/icons.js?v=39"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="js/store.js?v=38"></script>
-<script src="js/whatsapp.js?v=38"></script>
-<script src="js/app.js?v=38"></script>
+<script src="js/store.js?v=39"></script>
+<script src="js/whatsapp.js?v=39"></script>
+<script src="js/app.js?v=39"></script>
 <script>
   let slideInterval = null;
 
@@ -301,8 +301,19 @@
     );
   }
 
-  function quickAddToCart(productId) {
-    const product = Store.getProduct(productId);
+  async function quickAddToCart(productId) {
+    let product = Store.getProduct(productId);
+    if (!product) {
+      const cachedFeatured = JSON.parse(localStorage.getItem("ws_products_filter_featured") || "[]");
+      const cachedOffers = JSON.parse(localStorage.getItem("ws_products_filter_offers") || "[]");
+      const cachedNew = JSON.parse(localStorage.getItem("ws_products_filter_new") || "[]");
+      product = cachedFeatured.find(p => p.id === productId) ||
+                cachedOffers.find(p => p.id === productId) ||
+                cachedNew.find(p => p.id === productId);
+    }
+    if (!product) {
+      product = await Store.loadProductById(productId);
+    }
     if (!product || !Store.isProductAvailable(product)) return;
     const hasOptions = (product.variants && product.variants.length > 0) || Store.hasVariantMatrix(product);
     if (hasOptions) {

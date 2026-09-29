@@ -37,6 +37,8 @@ async function initAdminPage() {
 
   // لوحة الأدمن تحتاج القائمة الكاملة، بينما المتجر العام لا يسحبها.
   await Store.loadAllProductsFromFirebase();
+  // جلب أحدث الطلبات من السيرفر فور فتح لوحة التحكم
+  await Store.loadOrdersFromFirebase();
 
   wireSidebarNav();
   const logoutBtn = document.getElementById("adminLogoutBtn");

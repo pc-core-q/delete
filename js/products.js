@@ -19,9 +19,28 @@ function renderProductCard(product) {
   else if (product.isNew) badges.push('<span class="badge badge-new">جديد</span>');
   else if (product.featured) badges.push('<span class="badge badge-featured">مميز</span>');
   if (outOfStock) badges.push('<span class="badge badge-out-abs">غير متوفر</span>');
-  const optionsCount = (product.colors && product.colors.length) || (product.variants && product.variants.length) || 0;
-  if (optionsCount > 1) {
-    badges.push('<span class="badge badge-variants">' + iconSvg("layers") + optionsCount + ' خيارات</span>');
+
+  let colorsHtml = "";
+  if (product.colors && product.colors.length > 0) {
+    const maxShow = 4;
+    const slice = product.colors.slice(0, maxShow);
+    const remaining = product.colors.length - maxShow;
+    
+    let dots = slice.map(function(c) {
+      const bg = c.hex || "#ccc";
+      return '<span class="card-color-dot" style="background:' + bg + ';" title="' + (c.name || "") + '"></span>';
+    }).join("");
+
+    if (remaining > 0) {
+      dots += '<span class="card-color-more">+' + remaining + '</span>';
+    }
+
+    colorsHtml = '<div class="product-body-colors">' + dots + '</div>';
+  } else {
+    const optionsCount = (product.variants && product.variants.length) || 0;
+    if (optionsCount > 1) {
+      badges.push('<span class="badge badge-variants">' + iconSvg("layers") + optionsCount + ' خيارات</span>');
+    }
   }
 
   return (
@@ -33,6 +52,7 @@ function renderProductCard(product) {
       '<div class="product-body">' +
         '<span class="product-cat">' + Store.getCategoryName(product.categoryId) + "</span>" +
         '<h3 class="product-name"><a href="product.html?id=' + product.id + '">' + product.name + "</a></h3>" +
+        colorsHtml +
         '<div class="product-foot">' +
           '<span class="price">' + formatPrice(product.price) + "</span>" +
           '<div class="product-actions">' +

@@ -8,75 +8,45 @@
   <meta http-equiv="Expires" content="0">
   <title>المنتجات | متجرك الإلكتروني</title>
   <link rel="icon" href="assets/logo/logo.png">
-  <link rel="stylesheet" href="css/style.css?v=34">
+  <link rel="stylesheet" href="css/style.css?v=36">
   <style>
-  /* شريط التبويبات العلوي للأقسام السلس */
-  .shop-cat-tabs-wrap {
-    overflow-x: auto;
-    scroll-behavior: smooth;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    padding: 4px 0 14px;
-    margin-bottom: 10px;
-    display: flex;
-    gap: 8px;
-  }
-  .shop-cat-tabs-wrap::-webkit-scrollbar { display: none; }
-  
-  .shop-tab-btn {
-    flex: 0 0 auto;
-    padding: 8px 18px;
-    border-radius: var(--radius-pill);
-    border: 1px solid var(--line);
-    background: #fff;
-    color: var(--ink-700);
-    font-weight: 600;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: all 0.22s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .shop-tab-btn:hover {
-    border-color: var(--olive-500);
-    background: var(--olive-50);
-  }
-  .shop-tab-btn.active {
-    background: var(--olive-700);
-    color: #fff;
-    border-color: var(--olive-700);
-    box-shadow: 0 4px 12px rgba(13, 81, 68, 0.2);
-  }
-
-  /* انتقال ناعم لشبكة المنتجات */
-  #shopGrid {
-    transition: opacity 0.2s ease, transform 0.2s ease;
-  }
-  #shopGrid.is-updating {
-    opacity: 0.4;
-    transform: translateY(4px);
-  }
-
-  @media (max-width: 768px) {
-    .product-grid, #shopGrid {
-      display: grid !important;
-      grid-template-columns: repeat(2, 1fr) !important;
-      gap: 8px !important;
+    .shop-cat-tabs-wrap {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 12px;
+      margin-bottom: 20px;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
     }
-    .product-card {
-      min-width: 0 !important;
-      padding: 8px !important;
+    .shop-cat-tabs-wrap::-webkit-scrollbar { display: none; }
+    .shop-tab-btn {
+      padding: 8px 18px;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--line);
+      background: var(--white);
+      color: var(--ink-700);
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s ease;
     }
-    .product-card .product-name { font-size: 12px !important; margin-bottom: 4px !important; line-height: 1.4 !important; }
-    .product-card .product-desc { display: none !important; } 
-    .product-card .stock-line { font-size: 10px !important; margin-bottom: 4px !important; }
-    .product-card .price { font-size: 13px !important; margin: 6px 0 !important; }
-    .product-card .product-actions .btn { padding: 6px !important; font-size: 11px !important; }
-  }
+    .shop-tab-btn.active {
+      background: var(--olive-700);
+      color: var(--white);
+      border-color: var(--olive-700);
+    }
+    #shopGrid.is-updating {
+      opacity: 0.5;
+      transition: opacity 0.2s ease;
+    }
   </style>
 </head>
 <body>
+
+<!-- Sidebar overlay -->
+<div class="sidebar-overlay" onclick="toggleSidebar()"></div>
 
 <div id="site-header" data-active="products"></div>
 
@@ -84,56 +54,45 @@
   <section class="page-header">
     <div class="container">
       <div class="breadcrumb"><a href="index.html">الرئيسية</a> / المنتجات</div>
-      <h1>كل المنتجات</h1>
-      <p>تصفّح مجموعتنا الكاملة من المنتجات بسلاسة وسرعة فائقة.</p>
+      <h1>جميع المنتجات</h1>
+      <p>تصفح تشكيلتنا المميزة واختر ما يناسبك واطلب مباشرة عبر واتساب.</p>
     </div>
   </section>
 
-  <section class="section" style="padding-top:15px;">
+  <section class="section" style="padding-top:20px;">
     <div class="container">
-
-      <!-- شريط البحث والترتيب -->
-      <div class="shop-toolbar" style="margin-bottom: 12px;">
-        <div class="search-box">
-          <input type="text" id="searchInput" placeholder="ابحث عن منتج...">
-          <span></span>
+      <div class="shop-controls" style="margin-bottom:15px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;">
+        <div class="search-box" style="flex:1;min-width:240px;position:relative;">
+          <input type="text" id="searchInput" placeholder="ابحث باسم المنتج أو الوصف…" style="width:100%;padding:10px 14px;border:1px solid var(--line);border-radius:var(--radius-sm);font-family:var(--font-body);">
         </div>
-        <select id="sortSelect" class="sort-select">
-          <option value="default">الأحدث</option>
-          <option value="price-asc">السعر: من الأقل للأعلى</option>
-          <option value="price-desc">السعر: من الأعلى للأقل</option>
-          <option value="name">الاسم (أ-ي)</option>
-        </select>
-        <span id="resultCount" style="font-size:.85rem;color:var(--ink-600);white-space:nowrap;"></span>
+        <div class="sort-box" style="min-width:180px;">
+          <select id="sortSelect" style="width:100%;padding:10px 14px;border:1px solid var(--line);border-radius:var(--radius-sm);background:#fff;font-family:var(--font-body);">
+            <option value="default">الترتيب الافتراضي</option>
+            <option value="price-asc">السعر: من الأقل للأعلى</option>
+            <option value="price-desc">السعر: من الأعلى للأقل</option>
+            <option value="name">الاسم: أ - ي</option>
+          </select>
+        </div>
       </div>
 
-      <!-- شريط تبويبات الأقسام السلس والسريع (Pills Bar) -->
       <div class="shop-cat-tabs-wrap" id="filterCategories"></div>
 
-      <!-- شبكة المنتجات المباشرة -->
-      <div class="product-grid" id="shopGrid"></div>
+      <div style="margin-bottom:15px;font-size:0.9rem;color:var(--ink-500);" id="resultCount">جاري التحميل…</div>
 
+      <div class="product-grid" id="shopGrid"></div>
     </div>
   </section>
 </main>
 
 <div id="site-footer"></div>
 
-<script src="js/config.js?v=28"></script>
-<script src="js/icons.js?v=28"></script>
+<script src="js/config.js?v=36"></script>
+<script src="js/icons.js?v=36"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="js/store.js?v=29"></script>
-<script src="js/whatsapp.js?v=28"></script>
-<script src="js/app.js?v=29"></script>
-<script src="js/products.js?v=30"></script>
-<script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const shopSearchSpan = document.querySelector(".shop-toolbar .search-box span");
-    if (shopSearchSpan && typeof iconSvg === "function") {
-      shopSearchSpan.innerHTML = iconSvg("search");
-    }
-  });
-</script>
+<script src="js/store.js?v=36"></script>
+<script src="js/whatsapp.js?v=36"></script>
+<script src="js/app.js?v=36"></script>
+<script src="js/products.js?v=36"></script>
 </body>
 </html>

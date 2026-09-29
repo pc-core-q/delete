@@ -254,7 +254,16 @@ function renderFooter() {
             (settings.address ? '<li>' + settings.address + '</li>' : '') +
           '</ul></div>' +
         '</div>' +
-        '<div class="footer-bottom">© ' + new Date().getFullYear() + ' ' + settings.storeName + ' — جميع الحقوق محفوظة.</div>' +
+        '<div class="footer-bottom" style="margin-top: 25px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.08); text-align: center; font-size: 0.82rem; color: rgba(255,255,255,0.6); display: flex; flex-direction: column; gap: 6px; align-items: center;">' +
+          '<div>© ' + new Date().getFullYear() + ' ' + settings.storeName + ' — جميع الحقوق محفوظة.</div>' +
+          '<div style="display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap;">' +
+            '<span>برمجة وتصميم: <strong style="color: #fff;">م. أمير أحمد</strong></span>' +
+            '<span style="opacity: 0.35;">•</span>' +
+            '<a href="https://instagram.com/az_6ui" target="_blank" rel="noopener" style="color: rgba(255,255,255,0.85); text-decoration: underline;">انستغرام: @az_6ui</a>' +
+            '<span style="opacity: 0.35;">•</span>' +
+            '<a href="tel:07813623682" dir="ltr" style="color: rgba(255,255,255,0.85); text-decoration: underline;">07813623682</a>' +
+          '</div>' +
+        '</div>' +
       '</div>' +
     '</footer>';
 }

@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0">
   <title>الأقسام | متجرك الإلكتروني</title>
   <link rel="icon" href="assets/logo/logo.png">
-  <link rel="stylesheet" href="css/style.css?v=34">
+  <link rel="stylesheet" href="css/style.css?v=36">
   <style>
     .cat-main-card {
       background: #fff;
@@ -111,13 +111,13 @@
 
 <div id="site-footer"></div>
 
-<script src="js/config.js?v=28"></script>
-<script src="js/icons.js?v=28"></script>
+<script src="js/config.js?v=36"></script>
+<script src="js/icons.js?v=36"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="js/store.js?v=29"></script>
-<script src="js/whatsapp.js?v=28"></script>
-<script src="js/app.js?v=29"></script>
+<script src="js/store.js?v=36"></script>
+<script src="js/whatsapp.js?v=36"></script>
+<script src="js/app.js?v=36"></script>
 <script>
   function renderAllCategoriesPage() {
     const grid = document.getElementById("categoriesGrid");
@@ -136,9 +136,11 @@
       const subCats = allCategories.filter(c => c.parentId === main.id);
       const mainProdCount = allProducts.filter(p => p.categoryId === main.id || subCats.some(s => s.id === p.categoryId)).length;
 
-      const media = main.image 
-        ? '<img src="' + main.image + '" alt="' + main.name + '">' 
-        : iconSvg(main.icon || "box");
+      let media = iconSvg(main.icon || "box");
+      if (main.image) {
+        const optimizedImg = main.image.replace(/tr:[^/]+/g, "tr:w-700,q-85");
+        media = '<img src="' + optimizedImg + '" alt="' + main.name + '" loading="lazy" decoding="async">';
+      }
 
       let subHtml = '';
       if (subCats.length > 0) {

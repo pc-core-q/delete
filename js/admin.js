@@ -1,7 +1,7 @@
 /* ==========================================================================
    admin.js
    منطق لوحة تحكم الأدمن بالكامل (admin.html). 
-   تم التحديث: تحسين معالجة الصور وضغط الأبعاد لتوفير باقة ImageKit وزيادة السرعة.
+   تم التحديث: رفع دقة الصور إلى معايير عالية ونقية مع كفاءة استهلاك الباقة.
    ========================================================================== */
 
 let editingProductId = null;
@@ -17,13 +17,17 @@ let pendingInventory = {};   // { "لون||مقاس": qty }
 async function initAdminPage() {
   const app = document.getElementById("adminApp");
   if (!app) return;
-  if (!requireAdminAuth()) return;
+  if (typeof requireAdminAuth === "function") {
+    const isAuthed = await requireAdminAuth();
+    if (!isAuthed) return;
+  }
 
   // لوحة الأدمن تحتاج القائمة الكاملة، بينما المتجر العام لا يسحبها.
   await Store.loadAllProductsFromFirebase();
 
   wireSidebarNav();
-  document.getElementById("adminLogoutBtn").addEventListener("click", handleAdminLogout);
+  const logoutBtn = document.getElementById("adminLogoutBtn");
+  if (logoutBtn) logoutBtn.addEventListener("click", handleAdminLogout);
   
   // زر الهامبرغر لفتح القائمة الجانبية (إذا كان موجوداً)
   const sidebarToggle = document.getElementById("adminSidebarToggle");
@@ -51,7 +55,7 @@ async function initAdminPage() {
 }
 
 /* ---------------------------------------------------------------------- */
-/* رفع الصور ومعالجتها الذكية عبر ImageKit CDN                            */
+/* رفع الصور ومعالجتها الذكية بدقة عالية عبر ImageKit CDN                 */
 /* ---------------------------------------------------------------------- */
 
 async function uploadToImgBB(file, isBanner = false) {
@@ -88,10 +92,10 @@ async function uploadToImgBB(file, isBanner = false) {
       return rawUrl;
     }
 
-    // 3. تحسين استهلاك ImageKit: w-500 بجودة 75 للصور العادية وبنرات بحجم مدروس 1000px
+    // 3. ضبط الدقة العالية: w-800 بجودة 85 للصور العادية وبنرات 1200 بجودة 90
     const transform = isBanner
-      ? "tr:w-1000,q-80,f-auto"
-      : "tr:w-500,q-75,f-auto";
+      ? "tr:w-1200,q-90,f-auto"
+      : "tr:w-800,q-85,f-auto";
 
     // 4. بناء الرابط النهائي عبر ImageKit CDN
     return imageKitEndpoint + "/" + transform + "/" + match[1];
@@ -215,7 +219,7 @@ function populateCategorySelect() {
 }
 
 /* ---------------------------------------------------------------------- */
-/* الألوان + المقاسات + المخزون لكل تركيبة (مناسب لمنتجات الملابس)        */
+/* الألوان + المقاسات + المخزون لكل تركيبة                                 */
 /* ---------------------------------------------------------------------- */
 
 function currentSizesFromInput() {
@@ -379,7 +383,7 @@ function wireProductModal() {
       if (!file) return;
       
       try {
-        showToast("جاري رفع الصورة لسيرفر التخزين...");
+        showToast("جاري رفع الصورة بدقة عالية...");
         const imageUrl = await uploadToImgBB(file, false);
         pendingProductImage = imageUrl;
         document.getElementById("productImagePreview").innerHTML = '<img src="' + imageUrl + '">';
@@ -608,7 +612,7 @@ function wireCategoryModal() {
       if (!file) return;
 
       try {
-        showToast("جاري رفع صورة القسم...");
+        showToast("جاري رفع صورة القسم بدقة عالية...");
         const imageUrl = await uploadToImgBB(file, false);
         pendingCategoryImage = imageUrl;
         const preview = document.getElementById("categoryImagePreview");
@@ -766,7 +770,7 @@ function wireAdModal() {
       const file = imageInput.files[0];
       if (!file) return;
       try {
-        showToast("جاري رفع الإعلان بدقة محسنة وسريعة...");
+        showToast("جاري رفع الإعلان بدقة عالية...");
         const imageUrl = await uploadToImgBB(file, true);
         pendingAdImage = imageUrl;
         const preview = document.getElementById("adImagePreview");

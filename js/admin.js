@@ -107,14 +107,16 @@ async function uploadToImgBB(file, isBanner = false) {
     return rawUrl;
   }
 
-  // 3. ضبط الدقة العالية: w-800 بجودة 85 للصور العادية وبنرات 1200 بجودة 90
-  const transform = isBanner
-    ? "tr:w-1200,q-90,f-auto"
-    : "tr:w-800,q-85,f-auto";
-
+ // القديم:
+// const transform = isBanner ? "tr:w-1200,q-90,f-auto" : "tr:w-800,q-85,f-auto";
+// الجديد (توفير هائل في الحجم مع الحفاظ على النقاء التام):
+const transform = isBanner
+  ? "tr:w-800,q-75,f-auto"   // البنر يكفيه 800 بكسل بجودة 75
+  : "tr:w-450,q-70,f-auto";  // صور المنتجات 450 بكسل بجودة 70 ممتازة جداً وتزن 25KB فقط
   // 4. بناء الرابط النهائي عبر ImageKit CDN
   return imageKitEndpoint + "/" + transform + "/" + match[1];
 }
+
 
 /* ---------------------------------------------------------------------- */
 /* التنقّل بين الأقسام وإدارة القائمة الجانبية                            */

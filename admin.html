@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0">
   <title>لوحة تحكم الأدمن | متجرك الإلكتروني</title>
   <link rel="icon" href="assets/logo/logo.png">
-  <link rel="stylesheet" href="css/style.css?v=33">
+  <link rel="stylesheet" href="css/style.css?v=35">
 <style>
   /* === حماية ضد تمدد الصفحة وتنسيق المودال والأزرار === */
   html, body {
@@ -66,7 +66,35 @@
       text-align: right !important;
   }
 
-  /* تنسيق القائمة الجانبية في الهاتف لتكون فوق الخلفية الشفافة تماماً */
+  /* تنسيق وضبط حجم أيقونات الـ SVG البديلة في الجداول والمعاينة */
+  .admin-table td:first-child {
+      width: 60px !important;
+      min-width: 60px !important;
+  }
+  .admin-table-icon {
+      width: 48px !important;
+      height: 48px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      background: var(--olive-50) !important;
+      border-radius: 9px !important;
+      color: var(--olive-700) !important;
+      flex-shrink: 0 !important;
+  }
+  .admin-table-icon svg {
+      width: 24px !important;
+      height: 24px !important;
+      max-width: 24px !important;
+      max-height: 24px !important;
+  }
+  .preview svg {
+      width: 38px !important;
+      height: 38px !important;
+      color: var(--ink-300) !important;
+  }
+
+  /* تنسيق القائمة الجانبية في الهاتف */
   @media (max-width: 900px) {
       .admin-sidebar {
           position: fixed !important;
@@ -355,16 +383,16 @@
   </div>
 </div>
 
-<script src="js/config.js"></script>
-<script src="js/icons.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="js/config.js?v=35"></script>
+<script src="js/icons.js?v=35"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="js/store.js?v=29"></script>
-<script src="js/whatsapp.js"></script>
-<script src="js/app.js"></script>
+<script src="js/store.js?v=35"></script>
+<script src="js/whatsapp.js?v=35"></script>
+<script src="js/app.js?v=35"></script>
 <script src="js/auth.js?v=10"></script>
-<script src="js/admin.js??v=29"></script>
+<script src="js/admin.js?v=30"></script>
 <script>
   // تعبئة الأيقونات الثابتة
   document.querySelector(".admin-nav").innerHTML = document.querySelector(".admin-nav").innerHTML

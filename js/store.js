@@ -116,8 +116,13 @@ async function pullFromFirebase() {
     if (rawAds !== null) localStorage.setItem(DB_KEYS.ads, JSON.stringify(ads));
 
     if (sessionStorage.getItem(DB_KEYS.session) === "1") {
-      const orders = await fetchNode(DB_KEYS.orders);
-      if (orders !== null) localStorage.setItem(DB_KEYS.orders, JSON.stringify(firebaseValueToArray(orders)));
+      const ordersRaw = await fetchNode(DB_KEYS.orders);
+      if (ordersRaw !== null) {
+        const ordersList = firebaseValueToArray(ordersRaw);
+        // ترتيب الطلبات من الأحدث إلى الأقدم بناءً على التاريخ
+        ordersList.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+        localStorage.setItem(DB_KEYS.orders, JSON.stringify(ordersList));
+      }
     }
 
     localStorage.setItem("last_meta_pull_time", now.toString());
@@ -611,7 +616,13 @@ const Store = {
     const newOrder = Object.assign({ id: uid("ord"), date: new Date().toISOString() }, order);
     list.unshift(newOrder);
     localStorage.setItem(DB_KEYS.orders, JSON.stringify(list));
-    syncNodeToFirebase(DB_KEYS.orders, list);
+    
+    // إضافة الطلب كعنصر مستقل في فايربيس بدلاً من استبدال العقدة كاملة
+    if (firebaseEnabled) {
+      database.ref(DB_KEYS.orders).push(newOrder).catch(error => {
+        console.error("Firebase Log Order Error:", error);
+      });
+    }
   },
 
   async login(email, password) {

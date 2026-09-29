@@ -29,9 +29,9 @@ function showDeliveryModal(onConfirm) {
         '</div>' +
         '<p style="font-size: .85rem; margin-top: -10px; margin-bottom: 20px;">يرجى إدخال عنوانك لإكمال الطلب عبر واتساب.</p>' +
         '<form id="deliveryForm">' +
-          '<div class="field"><label>المحافظة</label><input type="text" id="delGov" placeholder="مثال: العاصمة" required></div>' +
-          '<div class="field"><label>المنطقة</label><input type="text" id="delArea" placeholder="مثال: المنصور" required></div>' +
-          '<div class="field"><label>أقرب نقطة دالة (اختياري)</label><input type="text" id="delLandmark" placeholder="مثال: قرب مول المنصور"></div>' +
+          '<div class="field"><label>المحافظة</label><input type="text" id="delGov" placeholder="مثال: بغداد / كربلاء" required></div>' +
+          '<div class="field"><label>المنطقة</label><input type="text" id="delArea" placeholder="مثال: حي الحسين" required></div>' +
+          '<div class="field"><label>أقرب نقطة دالة (اختياري)</label><input type="text" id="delLandmark" placeholder="مثال: قرب مجسر..."></div>' +
           '<div class="field"><label>رقم الهاتف</label><input type="tel" id="delPhone" placeholder="مثال: 07700000000" required></div>' +
           '<button type="submit" class="btn btn-whatsapp btn-block" style="margin-top:20px;">تأكيد وإرسال عبر واتساب</button>' +
         '</form>' +
@@ -87,28 +87,28 @@ function buildProductWhatsAppLink(product, qty, info, selection) {
   const variantLine = variantLineText(selection);
 
   const lines = [
-  "👋 السلام عليكم، أود طلب هذا المنتج:",
-  "",
-  "📦 *تفاصيل الطلب:*",
-  "▪️ اسم المنتج: *" + product.name + "*",
-  variantLine ? "▪️ " + variantLine : null,
-  "▪️ الكمية: " + quantity,
-  "▪️ السعر: *" + formatPrice(total) + "* (غير شامل أجور التوصيل)",
-  "",
-  "📍 *معلومات التوصيل:*",
-  "▪️ المحافظة: *" + info.gov + "*",
-  "▪️ المنطقة: *" + info.area + "*",
-  "▪️ أقرب نقطة دالة: " + info.landmark,
-  "▪️ رقم الهاتف: *" + info.phone + "*",
-  "",
-  "أنتظر تأكيدكم لإتمام الطلب، شكراً لكم! 🙏"
-].filter(Boolean);
+    "👋 السلام عليكم، أود طلب هذا المنتج:",
+    "",
+    "📦 *تفاصيل الطلب:*",
+    "▪️ اسم المنتج: *" + product.name + "*",
+    variantLine ? "▪️ " + variantLine : null,
+    "▪️ الكمية: " + quantity,
+    "▪️ السعر: *" + formatPrice(total) + "* (غير شامل أجور التوصيل)",
+    "",
+    "📍 *معلومات التوصيل:*",
+    "▪️ المحافظة: *" + info.gov + "*",
+    "▪️ المنطقة: *" + info.area + "*",
+    "▪️ أقرب نقطة دالة: " + info.landmark,
+    "▪️ رقم الهاتف: *" + info.phone + "*",
+    "",
+    "أنتظر تأكيدكم لإتمام الطلب، شكراً لكم! 🙏"
+  ].filter(Boolean);
 
   return buildWhatsAppUrl(lines.join("\n"));
 }
 
 function buildCartWhatsAppLink(cartLines, products, info) {
-const messageLines = [
+  const messageLines = [
     "👋 السلام عليكم، أود طلب هذه المنتجات من السلة:",
     "",
     "🛒 *تفاصيل الطلب:*"
@@ -152,7 +152,21 @@ function orderSingleProductViaWhatsApp(product, qty, selection) {
   showDeliveryModal(function(info) {
     Store.logOrder({
       type: "single",
-      items: [{ productId: product.id, name: product.name, qty: qty, price: product.price, color: selection.color || null, size: selection.size || null, variant: selection.variant || null }],
+      customer: {
+        gov: info.gov,
+        area: info.area,
+        landmark: info.landmark,
+        phone: info.phone
+      },
+      items: [{
+        productId: product.id,
+        name: product.name,
+        qty: qty,
+        price: product.price,
+        color: selection.color || null,
+        size: selection.size || null,
+        variant: selection.variant || null
+      }],
       total: product.price * qty
     });
     window.open(buildProductWhatsAppLink(product, qty, info, selection), "_blank");
@@ -171,12 +185,30 @@ function orderCartViaWhatsApp() {
   showDeliveryModal(function(info) {
     const items = cart.map(function (line) {
       const p = products.find(function (pp) { return pp.id === line.productId; });
-      return p ? { productId: p.id, name: p.name, qty: line.qty, price: p.price, color: line.color || null, size: line.size || null, variant: line.variant || null } : null;
+      return p ? {
+        productId: p.id,
+        name: p.name,
+        qty: line.qty,
+        price: p.price,
+        color: line.color || null,
+        size: line.size || null,
+        variant: line.variant || null
+      } : null;
     }).filter(Boolean);
 
     const total = items.reduce(function (sum, it) { return sum + it.price * it.qty; }, 0);
 
-    Store.logOrder({ type: "cart", items: items, total: total });
+    Store.logOrder({
+      type: "cart",
+      customer: {
+        gov: info.gov,
+        area: info.area,
+        landmark: info.landmark,
+        phone: info.phone
+      },
+      items: items,
+      total: total
+    });
 
     window.open(buildCartWhatsAppLink(cart, products, info), "_blank");
     Store.clearCart();

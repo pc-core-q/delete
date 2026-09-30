@@ -14,8 +14,8 @@ let firebaseAuth = null;
 
 (function initFirebaseIfConfigured() {
   const url = (typeof STORE_CONFIG !== "undefined" && STORE_CONFIG.firebaseDatabaseURL || "").trim();
-  if (!url) return; // لا رابط = لا اتصال، الموقع يعمل بالكامل محليًا عبر localStorage
-  if (typeof firebase === "undefined") return; // مكتبة فايربيس غير محمّلة
+  if (!url) return;
+  if (typeof firebase === "undefined") return;
   try {
     const cfg = STORE_CONFIG || {};
     const authReady = [cfg.firebaseApiKey, cfg.firebaseAuthDomain, cfg.firebaseProjectId, cfg.firebaseAppId].every(v => String(v || "").trim());
@@ -55,7 +55,6 @@ function uid(prefix) {
   return (prefix || "id") + "_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 }
 
-// مفتاح سطر سلة فريد لكل تركيبة منتج + لون + مقاس (أو + خيار نصي قديم)
 function buildCartItemKey(productId, meta) {
   meta = meta || {};
   const parts = [productId];
@@ -65,7 +64,6 @@ function buildCartItemKey(productId, meta) {
   return parts.join("|");
 }
 
-/* --- رفع الجزء المعدل فقط إلى فايربيس --- */
 function syncNodeToFirebase(nodeKey, data) {
   if (!firebaseEnabled) return;
   database.ref(nodeKey).set(data).catch(error => {
@@ -84,7 +82,6 @@ async function fetchNode(nodeKey) {
   }
 }
 
-// تحويل نتيجة Firebase (سواء كانت Array أو Object) إلى مصفوفة نظيفة
 function firebaseValueToArray(value) {
   if (!value) return [];
   if (Array.isArray(value)) return value.filter(Boolean);
@@ -96,9 +93,8 @@ async function pullFromFirebase() {
   try {
     const lastSync = localStorage.getItem("last_meta_pull_time");
     const now = Date.now();
-    const cooldownMs = 15 * 60 * 1000; // 15 دقيقة لحماية باقة فايربيس المجانية
+    const cooldownMs = 15 * 60 * 1000; // مدة الكاش: 15 دقيقة
 
-    // إذا تمت المزامنة حديثاً قبل أقل من 15 دقيقة، نعتمد الكاش المحلي ونوفر الاتصال
     if (lastSync && (now - parseInt(lastSync, 10)) < cooldownMs) {
       const notifySync = () => document.dispatchEvent(new CustomEvent("store:synced"));
       if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", notifySync, { once: true });
@@ -106,7 +102,6 @@ async function pullFromFirebase() {
       return;
     }
 
-    // سحب الأقسام، الإعدادات، والإعلانات دفعة واحدة
     const [rawCategories, settings, rawAds] = await Promise.all([
       fetchNode(DB_KEYS.categories),
       fetchNode(DB_KEYS.settings),
@@ -120,10 +115,13 @@ async function pullFromFirebase() {
     if (settings !== null) localStorage.setItem(DB_KEYS.settings, JSON.stringify(settings || {}));
     if (rawAds !== null) localStorage.setItem(DB_KEYS.ads, JSON.stringify(ads));
 
-    // الطلبات لا تُسحب إلا من جلسة الأدمن
     if (sessionStorage.getItem(DB_KEYS.session) === "1") {
-      const orders = await fetchNode(DB_KEYS.orders);
-      if (orders !== null) localStorage.setItem(DB_KEYS.orders, JSON.stringify(firebaseValueToArray(orders)));
+      const ordersRaw = await fetchNode(DB_KEYS.orders);
+      if (ordersRaw !== null) {
+        const ordersList = firebaseValueToArray(ordersRaw);
+        ordersList.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+        localStorage.setItem(DB_KEYS.orders, JSON.stringify(ordersList));
+      }
     }
 
     localStorage.setItem("last_meta_pull_time", now.toString());
@@ -266,18 +264,16 @@ async function fetchAllProductsFromFirebase() {
   }
 }
 
-// بدء المزامنة الذكية عند تحميل الملف
 pullFromFirebase();
 
 /* ---------------------------------------------------------------------- */
-/* التهيئة وإدارة إصدار البيانات (لحذف الكاش المتقادم تلقائياً للزبائن)   */
+/* التهيئة وإدارة إصدار البيانات                                          */
 /* ---------------------------------------------------------------------- */
 
 function seedIfNeeded() {
   const currentVersion = String((typeof STORE_CONFIG !== "undefined" && STORE_CONFIG.dataVersion) || "1");
   const storedVersion = localStorage.getItem("ws_data_version");
 
-  // إذا تم تغيير dataVersion في config.js، نحذف الكاش القديم بالكامل فوراً للزبون
   if (storedVersion !== currentVersion) {
     const keysToRemove = [
       DB_KEYS.categories,
@@ -326,7 +322,7 @@ function seedIfNeeded() {
 seedIfNeeded();
 
 /* ---------------------------------------------------------------------- */
-/* أدوات المتغيرات (الألوان/المقاسات/المخزون)                             */
+/* أدوات المتغيرات (الألوان/المقاسات/المخزون)                              */
 /* ---------------------------------------------------------------------- */
 
 function inventoryKey(color, size) {
@@ -382,10 +378,12 @@ const Store = {
     const now = Date.now();
     const cached = JSON.parse(localStorage.getItem(cacheKey) || "[]");
     const cachedAt = Number(localStorage.getItem(cacheTimeKey) || 0);
+    const cooldownMs = 15 * 60 * 1000; // كاش 15 دقيقة
 
-    // نعتمد الكاش فقط إذا كان ممتلئاً ومضى عليه أقل من 15 دقيقة
-    if (!forceRefresh && cached && cached.length > 0 && (now - cachedAt < 15 * 60 * 1000)) {
-      return cached;
+    if (!forceRefresh && cached && cached.length > 0) {
+      if (now - cachedAt < cooldownMs || !firebaseEnabled) {
+        return cached;
+      }
     }
 
     if (!firebaseEnabled) {
@@ -396,8 +394,10 @@ const Store = {
     if (products && products.length > 0) {
       localStorage.setItem(cacheKey, JSON.stringify(products));
       localStorage.setItem(cacheTimeKey, String(now));
+      this._cacheLoadedProducts(products);
+      return products;
     }
-    return products || [];
+    return cached && cached.length > 0 ? cached : [];
   },
 
   async loadProductsPageByCategory(categoryId, pageSize, cursorKey) {
@@ -443,24 +443,12 @@ const Store = {
     return result;
   },
 
-  _cacheLoadedProducts(products) {
-    if (!products || !products.length) return;
-    
-    // جلب المنتجات المخزنة مسبقاً في الكاش لتجنب مسحها
-    const existingProducts = this.getProducts();
+  _cacheLoadedProducts(newProducts) {
+    if (!newProducts || !newProducts.length) return;
+    const currentList = this.getProducts();
     const byId = new Map();
-    
-    // وضع المنتجات القديمة في الخريطة أولاً
-    existingProducts.forEach(function(p) { 
-      if (p && p.id) byId.set(p.id, p); 
-    });
-    
-    // إضافة أو تحديث المنتجات الجديدة المسحوبة للتو
-    products.forEach(function(p) { 
-      if (p && p.id) byId.set(p.id, p); 
-    });
-    
-    // حفظ القائمة المدمجة في الذاكرة المحلية
+    currentList.forEach(p => { if (p && p.id) byId.set(p.id, p); });
+    newProducts.forEach(p => { if (p && p.id) byId.set(p.id, p); });
     localStorage.setItem(DB_KEYS.products, JSON.stringify(Array.from(byId.values())));
   },
 
@@ -471,8 +459,12 @@ const Store = {
     const now = Date.now();
     const cached = JSON.parse(localStorage.getItem(cacheKey) || "[]");
     const cachedAt = Number(localStorage.getItem(cacheTimeKey) || 0);
-    if (!forceRefresh && cached && cached.length > 0 && (now - cachedAt < 15 * 60 * 1000)) {
-      return cached;
+    const cooldownMs = 15 * 60 * 1000; // كاش 15 دقيقة
+
+    if (!forceRefresh && cached && cached.length > 0) {
+      if (now - cachedAt < cooldownMs || !firebaseEnabled) {
+        return cached;
+      }
     }
 
     if (!firebaseEnabled) {
@@ -482,8 +474,10 @@ const Store = {
     if (products && products.length > 0) {
       localStorage.setItem(cacheKey, JSON.stringify(products));
       localStorage.setItem(cacheTimeKey, String(now));
+      this._cacheLoadedProducts(products);
+      return products;
     }
-    return products || [];
+    return cached && cached.length > 0 ? cached : [];
   },
 
   async loadProductById(id, forceRefresh) {
@@ -499,10 +493,12 @@ const Store = {
 
   async loadAllProductsFromFirebase(forceRefresh) {
     if (!firebaseEnabled) return this.getProducts();
-    if (!forceRefresh) {
-      const cachedAt = Number(localStorage.getItem("ws_products_all_time") || 0);
-      const cached = this.getProducts();
-      if (cached.length && Date.now() - cachedAt < 5 * 60 * 1000) return cached;
+    const cachedAt = Number(localStorage.getItem("ws_products_all_time") || 0);
+    const cached = this.getProducts();
+    const cooldownMs = 15 * 60 * 1000; // كاش 15 دقيقة
+
+    if (!forceRefresh && cached.length && (Date.now() - cachedAt < cooldownMs)) {
+      return cached;
     }
     const products = await fetchAllProductsFromFirebase();
     if (products === null) return this.getProducts();
@@ -615,16 +611,33 @@ const Store = {
 
   getOrders() { return JSON.parse(localStorage.getItem(DB_KEYS.orders) || "[]"); },
   
+  // دالة لجلب كل الطلبات للأدمن مباشرة من Firebase بدون كاش
+  async loadOrdersFromFirebase() {
+    if (!firebaseEnabled) return this.getOrders();
+    try {
+      const ordersRaw = await fetchNode(DB_KEYS.orders);
+      if (ordersRaw !== null) {
+        const ordersList = firebaseValueToArray(ordersRaw);
+        ordersList.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+        localStorage.setItem(DB_KEYS.orders, JSON.stringify(ordersList));
+        return ordersList;
+      }
+    } catch (e) {
+      console.error("Firebase Orders Fetch Error:", e);
+    }
+    return this.getOrders();
+  },
+
   logOrder(order) {
     const list = this.getOrders();
     const newOrder = Object.assign({ id: uid("ord"), date: new Date().toISOString() }, order);
     list.unshift(newOrder);
     localStorage.setItem(DB_KEYS.orders, JSON.stringify(list));
     
-    // تم التعديل: نرفع الطلب كعنصر مستقل بناءً على الـ id الخاص به لمنع مسح طلبات الآخرين
+    // إضافة الطلب كعنصر مستقل في فايربيس بدلاً من استبدال العقدة كاملة
     if (firebaseEnabled) {
-      database.ref(DB_KEYS.orders).child(newOrder.id).set(newOrder).catch(error => {
-        console.error("Firebase Order Sync Error:", error);
+      database.ref(DB_KEYS.orders).push(newOrder).catch(error => {
+        console.error("Firebase Log Order Error:", error);
       });
     }
   },

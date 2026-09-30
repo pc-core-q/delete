@@ -442,6 +442,12 @@ function openProductModal(productId) {
   form.reset();
 
   const preview = document.getElementById("productImagePreview");
+  
+  // إعادة تعيين حقل الصور الإضافية
+  const extraImagesInput = document.getElementById("productExtraImagesInput");
+  const extraImagesPreview = document.getElementById("extraImagesPreview");
+  if (extraImagesInput) extraImagesInput.value = "";
+  if (extraImagesPreview) extraImagesPreview.innerHTML = "";
 
   if (productId) {
     const p = Store.getProduct(productId);
@@ -459,6 +465,11 @@ function openProductModal(productId) {
     
     pendingProductImage = p.image || null;
     preview.innerHTML = p.image ? '<img src="' + p.image + '">' : iconSvg("box");
+    
+    // عرض الصور الإضافية إن وجدت
+    if (p.images && p.images.length > 0 && extraImagesPreview) {
+        extraImagesPreview.innerHTML = p.images.map(img => `<img src="${img}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #ccc;">`).join('');
+    }
 
     pendingColors = (p.colors || []).map(function (c) { return Object.assign({}, c); });
     pendingSizes = (p.sizes || []).slice();
@@ -482,7 +493,8 @@ function closeProductModal() {
   editingProductId = null;
 }
 
-function saveProductForm(e) {
+// دالة حفظ المنتج (معدلة لدعم الصور المتعددة)
+async function saveProductForm(e) {
   e.preventDefault();
   
   const cleanColors = pendingColors
@@ -507,6 +519,32 @@ function saveProductForm(e) {
     });
     totalStock = sum;
   }
+  
+  // رفع الصور الإضافية
+  const extraImagesInput = document.getElementById("productExtraImagesInput");
+  let extraImagesUrls = [];
+  
+  // جلب الصور القديمة إذا كنا في وضع التعديل
+  if (editingProductId) {
+      const existingProduct = Store.getProduct(editingProductId);
+      if (existingProduct && existingProduct.images) {
+          extraImagesUrls = existingProduct.images;
+      }
+  }
+
+  if (extraImagesInput && extraImagesInput.files.length > 0) {
+      showToast("جاري رفع الصور الإضافية، يرجى الانتظار...");
+      const uploadPromises = Array.from(extraImagesInput.files).map(file => uploadToImgBB(file, false));
+      
+      try {
+          const uploadedUrls = await Promise.all(uploadPromises);
+          // إضافة الصور الجديدة للصور القديمة (تجنب الحذف)
+          extraImagesUrls = extraImagesUrls.concat(uploadedUrls.filter(url => url !== null));
+      } catch (err) {
+          showToast("حدث خطأ أثناء رفع الصور الإضافية");
+          console.error(err);
+      }
+  }
 
   const data = {
     name: document.getElementById("productName").value.trim(),
@@ -521,7 +559,8 @@ function saveProductForm(e) {
     colors: cleanColors,
     sizes: cleanSizes,
     inventory: cleanInventory,
-    image: pendingProductImage
+    image: pendingProductImage,
+    images: extraImagesUrls // حفظ مصفوفة الصور الإضافية
   };
 
   if (!data.name || !data.categoryId) {
@@ -856,8 +895,50 @@ function saveAdForm(e) {
 }
 
 /* ---------------------------------------------------------------------- */
-/* سجلّ الطلبات                                                           */
+/* سجلّ الطلبات ودالة خصم المخزون                                          */
 /* ---------------------------------------------------------------------- */
+
+// دالة جديدة لخصم المخزون عند تأكيد الطلب
+window.deductOrderStock = async function(orderId) {
+    const orders = Store.getOrders();
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+
+    if (confirm("هل أنت متأكد من خصم كميات هذا الطلب من المخزون؟")) {
+        showToast("جاري خصم الكميات وتحديث المخزون...");
+        
+        for (let item of order.items) {
+            let product = Store.getProduct(item.productId);
+            if (!product) continue;
+            
+            let updated = false;
+            // فحص إذا كان المنتج يحتوي على خيارات (ألوان/مقاسات)
+            if (Store.hasVariantMatrix(product) && product.inventory) {
+                let key = (item.color || "_") + "||" + (item.size || "_");
+                if (product.inventory[key] !== undefined && product.inventory[key] >= item.qty) {
+                    product.inventory[key] -= item.qty;
+                    updated = true;
+                }
+            } else {
+                // منتج عادي بدون خيارات
+                if (product.stock >= item.qty) {
+                    product.stock -= item.qty;
+                    updated = true;
+                }
+            }
+
+            if (updated) {
+                // تحديث المنتج في قاعدة البيانات
+                await Store.updateProduct(product.id, { 
+                    stock: product.stock, 
+                    inventory: product.inventory 
+                });
+            }
+        }
+        showToast("تم خصم الكميات من المخزون بنجاح!");
+        setTimeout(() => location.reload(), 1500); // تحديث الصفحة لرؤية النتائج
+    }
+}
 
 function renderOrdersTable() {
   const tbody = document.getElementById("ordersTableBody");
@@ -865,7 +946,7 @@ function renderOrdersTable() {
   const orders = Store.getOrders();
 
   if (!orders.length) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--ink-300);">لا توجد طلبات مسجّلة بعد</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--ink-300);">لا توجد طلبات مسجّلة بعد</td></tr>';
     return;
   }
 
@@ -891,6 +972,9 @@ function renderOrdersTable() {
         '</div>';
     }
 
+    // زر خصم المخزون
+    const deductBtn = `<br><button class="btn btn-sm btn-outline" style="margin-top: 5px; font-size: 0.75rem; padding: 4px 8px;" onclick="deductOrderStock('${o.id}')">خصم من المخزون</button>`;
+
     return (
       "<tr>" +
         "<td>" + date + "</td>" +
@@ -898,6 +982,7 @@ function renderOrdersTable() {
         "<td>" + (o.type === "cart" ? "سلة كاملة" : "منتج واحد") + "</td>" +
         "<td>" + summary + "</td>" +
         "<td>" + formatPrice(o.total) + "</td>" +
+        "<td>" + deductBtn + "</td>" + // عمود جديد للزر
       "</tr>"
     );
   }).join("");

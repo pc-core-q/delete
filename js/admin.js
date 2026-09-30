@@ -15,17 +15,8 @@ let pendingSizes = [];       // ["S", "M", ...]
 let pendingInventory = {};   // { "لون||مقاس": qty }
 
 /* ---------------------------------------------------------------------- */
-/* حماية وفلترة النصوص من الكسر (Escaping)                                 */
+/* ملاحظة: escapeHtml و jsStr معرّفتان في app.js (يُحمَّل قبل هذا الملف)   */
 /* ---------------------------------------------------------------------- */
-function escapeHtml(str) {
-  if (!str) return "";
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
 
 async function initAdminPage() {
   const app = document.getElementById("adminApp");
@@ -609,9 +600,20 @@ function populateIconPicker() {
   const wrap = document.getElementById("categoryIconPicker");
   if (!wrap) return;
   wrap.innerHTML = CATEGORY_ICON_KEYS.map(function (key) {
-    return '<label class="icon-choice"><input type="radio" name="categoryIcon" value="' + key + '">' +
+    return '<label class="icon-choice" title="' + key + '"><input type="radio" name="categoryIcon" value="' + key + '">' +
       '<span>' + iconSvg(key) + "</span></label>";
   }).join("");
+  wrap.querySelectorAll('input[name="categoryIcon"]').forEach(function (r) {
+    r.addEventListener("change", syncIconPickerActive);
+  });
+}
+
+// يميّز الأيقونة المختارة بصريًا (الحقل نفسه مخفي بالـ CSS)
+function syncIconPickerActive() {
+  document.querySelectorAll("#categoryIconPicker .icon-choice").forEach(function (label) {
+    const input = label.querySelector("input");
+    label.classList.toggle("active", !!(input && input.checked));
+  });
 }
 
 function wireCategoryModal() {
@@ -693,12 +695,14 @@ function openCategoryModal(categoryId) {
     if (preview) preview.innerHTML = c.image ? '<img src="' + c.image + '">' : iconSvg(c.icon || "box");
     const radio = form.querySelector('input[name="categoryIcon"][value="' + c.icon + '"]');
     if (radio) radio.checked = true;
+    syncIconPickerActive();
   } else {
     title.textContent = "إضافة قسم جديد";
     parentSelect.value = "";
     if (preview) preview.innerHTML = iconSvg("box");
     const first = form.querySelector('input[name="categoryIcon"]');
     if (first) first.checked = true;
+    syncIconPickerActive();
   }
   
   modal.classList.add("open");
@@ -714,7 +718,9 @@ function saveCategoryForm(e) {
   const name = document.getElementById("categoryName").value.trim();
   const parentId = document.getElementById("categoryParent") ? document.getElementById("categoryParent").value : "";
   const iconInput = document.querySelector('input[name="categoryIcon"]:checked');
-  const icon = iconInput ? iconInput.value : "box";
+  // إن لم تُحدَّد أيقونة (مثلاً قسم قديم بأيقونة غير موجودة في القائمة) نحافظ على أيقونته الحالية
+  const existing = editingCategoryId ? Store.getCategories().find(function (c) { return c.id === editingCategoryId; }) : null;
+  const icon = iconInput ? iconInput.value : ((existing && existing.icon) || "box");
 
   if (!name) { showToast("يرجى إدخال اسم القسم"); return; }
 

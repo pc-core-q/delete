@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>من نحن | متجرك الإلكتروني</title>
 <link rel="icon" href="assets/logo/logo.png">
-<link rel="stylesheet" href="css/style.css?v=30">
+<link rel="stylesheet" href="css/style.css?v=41">
 </head>
 <body>
 
@@ -76,13 +76,13 @@
 
 <div id="site-footer"></div>
 
-<script src="js/config.js"></script>
-<script src="js/icons.js"></script>
+<script src="js/config.js?v=41"></script>
+<script src="js/icons.js?v=41"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="js/store.js?v=29"></script>
-<script src="js/whatsapp.js"></script>
-<script src="js/app.js"></script>
+<script src="js/store.js?v=41"></script>
+<script src="js/whatsapp.js?v=41"></script>
+<script src="js/app.js?v=41"></script>
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const s = Store.getSettings();
@@ -95,7 +95,7 @@
       .replace("__ICON_HEART__", iconSvg("heart"));
 
     let aboutSocialHtml = "";
-    if (s.instagram) aboutSocialHtml += '<a href="' + s.instagram + '" target="_blank" rel="noopener">' + iconSvg("instagram") + "انستغرام</a>";
+    if (s.instagram) aboutSocialHtml += '<a href="' + escapeHtml(s.instagram) + '" target="_blank" rel="noopener">' + iconSvg("instagram") + "انستغرام</a>";
     if (s.whatsapp) aboutSocialHtml += '<a href="https://wa.me/' + whatsappDigitsOnly(s.whatsapp) + '" target="_blank" rel="noopener">' + iconSvg("whatsapp") + "واتساب</a>";
     document.getElementById("aboutSocialRow").innerHTML = aboutSocialHtml || '<span style="opacity:.6;">لم يتم إعداد روابط التواصل بعد.</span>';
   });

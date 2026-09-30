@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>تواصل معنا | متجرك الإلكتروني</title>
 <link rel="icon" href="assets/logo/logo.png">
-<link rel="stylesheet" href="css/style.css?v=30">
+<link rel="stylesheet" href="css/style.css?v=41">
 </head>
 <body>
 
@@ -39,13 +39,13 @@
 
 <div id="site-footer"></div>
 
-<script src="js/config.js"></script>
-<script src="js/icons.js"></script>
+<script src="js/config.js?v=41"></script>
+<script src="js/icons.js?v=41"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="js/store.js?v=29"></script>
-<script src="js/whatsapp.js"></script>
-<script src="js/app.js"></script>
+<script src="js/store.js?v=41"></script>
+<script src="js/whatsapp.js?v=41"></script>
+<script src="js/app.js?v=41"></script>
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     const s = Store.getSettings();
@@ -70,14 +70,14 @@
       return '<div class="feature-card">' +
         '<div class="icon">' + iconHtml + "</div>" +
         "<h3>" + c.title + "</h3>" +
-        "<p>" + c.desc + "</p>" +
-        (c.link ? '<a href="' + c.link + '" target="_blank" rel="noopener" class="btn btn-outline btn-sm">' + c.label + "</a>" : "") +
+        "<p>" + escapeHtml(c.desc) + "</p>" +
+        (c.link ? '<a href="' + escapeHtml(c.link) + '" target="_blank" rel="noopener" class="btn btn-outline btn-sm">' + c.label + "</a>" : "") +
       "</div>";
     }).join("") : '<div class="empty-state"><p>لم يتم إعداد بيانات التواصل بعد من لوحة التحكم.</p></div>';
 
     let extraInfoHtml = "";
-    if (s.workingHours) extraInfoHtml += "<span><strong>ساعات العمل:</strong> " + s.workingHours + "</span>";
-    if (s.deliveryInfo) extraInfoHtml += "<span><strong>معلومات التوصيل:</strong> " + s.deliveryInfo + "</span>";
+    if (s.workingHours) extraInfoHtml += "<span><strong>ساعات العمل:</strong> " + escapeHtml(s.workingHours) + "</span>";
+    if (s.deliveryInfo) extraInfoHtml += "<span><strong>معلومات التوصيل:</strong> " + escapeHtml(s.deliveryInfo) + "</span>";
     document.getElementById("extraInfo").innerHTML = extraInfoHtml || "<span>لم يتم إضافة معلومات إضافية بعد.</span>";
   });
 </script>

@@ -25,31 +25,35 @@ function cartLineVariantLabel(line) {
   return parts.join(" / ");
 }
 
-function cartLineHtml(line, product) {
+function cartLineHtml(line, product, unavailable) {
   const mediaUrl = cartLineMediaUrl(line, product);
   const media = mediaUrl
-    ? '<img src="' + mediaUrl + '" alt="' + product.name + '">'
+    ? '<img src="' + escapeHtml(mediaUrl) + '" alt="' + escapeHtml(product.name) + '">'
     : '<div class="placeholder-icon-wrap">' + iconSvg(
         (Store.getCategories().find(function (c) { return c.id === product.categoryId; }) || {}).icon || "box"
       ) + "</div>";
 
   const variantLabel = cartLineVariantLabel(line);
-  const displayName = product.name + (variantLabel ? ' <span style="color:var(--olive-600); font-size: 0.85em;">(' + variantLabel + ')</span>' : '');
+  const displayName = escapeHtml(product.name) + (variantLabel ? ' <span style="color:var(--olive-600); font-size: 0.85em;">(' + escapeHtml(variantLabel) + ')</span>' : '');
+  const unavailableHtml = unavailable
+    ? '<div style="color:var(--danger);font-size:.85rem;font-weight:700;margin-bottom:4px;">غير متوفر حاليًا — لن يُضاف إلى الطلب</div>'
+    : '';
   const maxStock = Math.max(1, Store.getVariantStock(product, line.color, line.size));
 
   return (
-    '<div class="cart-item" data-id="' + line.itemKey + '">' +
+    '<div class="cart-item" data-id="' + escapeHtml(line.itemKey) + '">' +
       media +
       '<div>' +
         "<h4>" + displayName + "</h4>" +
+        unavailableHtml +
         '<div class="unit-price">' + formatPrice(product.price) + " / قطعة</div>" +
-        '<button type="button" class="remove-btn" onclick="removeCartLine(\'' + line.itemKey + '\')">إزالة من السلة</button>' +
+        '<button type="button" class="remove-btn" onclick="removeCartLine(' + jsStr(line.itemKey) + ')">إزالة من السلة</button>' +
       "</div>" +
       '<div class="qty-stepper">' +
-        '<button type="button" onclick="stepCartQty(\'' + line.itemKey + '\', -1)">−</button>' +
+        '<button type="button" onclick="stepCartQty(' + jsStr(line.itemKey) + ', -1)">−</button>' +
         '<input type="number" min="1" max="' + maxStock + '" value="' + line.qty + '" ' +
-          'onchange="setCartQty(\'' + line.itemKey + '\', this.value)">' +
-        '<button type="button" onclick="stepCartQty(\'' + line.itemKey + '\', 1)">+</button>' +
+          'onchange="setCartQty(' + jsStr(line.itemKey) + ', this.value)">' +
+        '<button type="button" onclick="stepCartQty(' + jsStr(line.itemKey) + ', 1)">+</button>' +
       "</div>" +
       '<div class="price">' + formatPrice(product.price * line.qty) + "</div>" +
     "</div>"
@@ -67,16 +71,24 @@ function renderCartPage() {
   let subtotal = 0;
   let itemCount = 0;
   let hasUnavailable = false;
+  let orderableCount = 0;
 
   cart.forEach(function (line) {
     const product = products.find(function (p) { return p.id === line.productId; });
     if (!product) return;
     const variantStock = Store.getVariantStock(product, line.color, line.size);
-    if (!product.available || variantStock <= 0) hasUnavailable = true;
-    const qty = Math.min(line.qty, Math.max(variantStock, 1));
+    const unavailable = !product.available || variantStock <= 0;
+    if (unavailable) {
+      // لا يدخل في المجموع ولا في الطلب (يتطابق مع getOrderableCartLines في whatsapp.js)
+      hasUnavailable = true;
+      rows.push(cartLineHtml(line, product, true));
+      return;
+    }
+    const qty = Math.min(line.qty, variantStock);
     subtotal += product.price * qty;
     itemCount += qty;
-    rows.push(cartLineHtml(Object.assign({}, line, { qty: qty }), product));
+    orderableCount++;
+    rows.push(cartLineHtml(Object.assign({}, line, { qty: qty }), product, false));
   });
 
   if (!rows.length) {
@@ -96,7 +108,7 @@ function renderCartPage() {
   if (subtotalEl) subtotalEl.textContent = formatPrice(subtotal);
   if (totalEl) totalEl.textContent = formatPrice(subtotal);
   if (countEl) countEl.textContent = itemCount;
-  if (checkoutBtn) checkoutBtn.disabled = rows.length === 0;
+  if (checkoutBtn) checkoutBtn.disabled = orderableCount === 0;
   if (warningEl) {
     warningEl.style.display = hasUnavailable ? "block" : "none";
   }

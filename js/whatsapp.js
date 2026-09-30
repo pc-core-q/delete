@@ -76,6 +76,23 @@ function variantLineText(item) {
   return parts.join(" — ");
 }
 
+// يحوّل سطور السلة إلى سطور قابلة للطلب فعلاً:
+// - تقييد الكمية بمخزون اللون/المقاس
+// - استبعاد المنتجات المحذوفة أو المعطّلة أو التي مخزونها صفر
+// تُستخدم في بناء رسالة الواتساب وتسجيل الطلب، لتتطابق مع ما تعرضه صفحة السلة.
+function getOrderableCartLines(cart, products) {
+  const lines = [];
+  let skipped = 0;
+  cart.forEach(function (line) {
+    const p = products.find(function (x) { return x.id === line.productId; });
+    if (!p) { skipped++; return; }
+    const stock = Store.getVariantStock(p, line.color, line.size);
+    if (!p.available || stock <= 0) { skipped++; return; }
+    lines.push(Object.assign({}, line, { qty: Math.max(1, Math.min(line.qty, stock)) }));
+  });
+  return { lines: lines, skipped: skipped };
+}
+
 function isWhatsAppConfigured() {
   return !!whatsappDigitsOnly(Store.getSettings().whatsapp);
 }
@@ -182,8 +199,18 @@ function orderCartViaWhatsApp() {
   }
   const products = Store.getProducts();
 
+  const orderable = getOrderableCartLines(cart, products);
+  if (!orderable.lines.length) {
+    showToast("لا توجد منتجات متوفرة في السلة لإتمام الطلب.");
+    return;
+  }
+  if (orderable.skipped > 0) {
+    showToast("تم استبعاد " + orderable.skipped + " منتج غير متوفر من الطلب.");
+  }
+  const orderLines = orderable.lines;
+
   showDeliveryModal(function(info) {
-    const items = cart.map(function (line) {
+    const items = orderLines.map(function (line) {
       const p = products.find(function (pp) { return pp.id === line.productId; });
       return p ? {
         productId: p.id,
@@ -210,7 +237,7 @@ function orderCartViaWhatsApp() {
       total: total
     });
 
-    window.open(buildCartWhatsAppLink(cart, products, info), "_blank");
+    window.open(buildCartWhatsAppLink(orderLines, products, info), "_blank");
     Store.clearCart();
   });
 }

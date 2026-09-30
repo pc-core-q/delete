@@ -4,6 +4,24 @@
    المخزّنة، القائمة على الجوال، عداد السلة، ورسائل التوست.
    ========================================================================== */
 
+/* ---------- أدوات التهريب المشتركة (متاحة لكل الصفحات) ---------- */
+// تهريب نص قبل إدخاله في innerHTML (محتوى نصي أو قيمة سمة داخل علامات اقتباس)
+function escapeHtml(str) {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+// تحويل قيمة إلى وسيط نصي آمن داخل onclick="fn(...)": يعالج علامات الاقتباس والأحرف الخاصة
+// مثال: '<button onclick="removeCartLine(' + jsStr(key) + ')">'
+function jsStr(value) {
+  return escapeHtml(JSON.stringify(String(value === null || value === undefined ? "" : value)));
+}
+
 const NAV_LINKS = [
   { href: "index.html", label: "الرئيسية", key: "home", icon: "home" },
   { href: "products.html", label: "المنتجات", key: "products", icon: "box" },
@@ -39,6 +57,9 @@ function renderHeader() {
     storeTagline: rawSettings.storeTagline || "تسوّق بسهولة وثقة"
   };
 
+  const safeName = escapeHtml(settings.storeName);
+  const safeTagline = escapeHtml(settings.storeTagline);
+
   const navHtml = NAV_LINKS.map(function (link) {
     const isActive = link.key === active ? " active" : "";
     return '<a href="' + link.href + '" class="' + isActive.trim() + '">' + link.label + '</a>';
@@ -47,9 +68,9 @@ function renderHeader() {
   mount.innerHTML =
     '<header class="site-header">' +
       '<div class="container header-inner">' +
-        '<a href="index.html" class="brand" aria-label="' + settings.storeName + '">' +
-          '<img src="assets/logo/logo.png" alt="' + settings.storeName + '">' +
-          '<span class="brand-name">' + settings.storeName + '<span>' + settings.storeTagline + '</span></span>' +
+        '<a href="index.html" class="brand" aria-label="' + safeName + '">' +
+          '<img src="assets/logo/logo.png" alt="' + safeName + '">' +
+          '<span class="brand-name">' + safeName + '<span>' + safeTagline + '</span></span>' +
         '</a>' +
         '<nav class="main-nav" id="mainNav" aria-label="التنقل الرئيسي">' + navHtml + '</nav>' +
         '<div class="header-actions">' +
@@ -110,23 +131,23 @@ function renderSidebarNav(activeKey) {
           html += '<div style="margin-bottom:5px;">';
           if (hasSub) {
               html += '<button onclick="toggleSubmenu(this)" style="width:100%; display:flex; align-items:center; justify-content:space-between; background:transparent; border:none; padding:12px; color:var(--ink-700); font-weight:600; text-align:right; border-radius:10px; cursor:pointer;">';
-              html += '<span style="display:flex; align-items:center; gap:10px;">' + iconSvg(mainCat.icon || "box") + mainCat.name + '</span>';
+              html += '<span style="display:flex; align-items:center; gap:10px;">' + iconSvg(mainCat.icon || "box") + escapeHtml(mainCat.name) + '</span>';
               html += '<span class="arrow" style="transition:0.3s; transform:rotate(90deg); display:inline-block;">&#10095;</span>';
               html += '</button>';
               
               html += '<div class="sidebar-submenu" style="padding-right:35px; margin-top:5px; display:none;">';
               
               const allLink = isShopPage ? `javascript:updateCategory('${mainCat.id}');toggleSidebar();` : `products.html?cat=${mainCat.id}`;
-              html += '<a href="' + allLink + '" style="display:block; padding:8px; color:var(--olive-600); text-decoration:none; font-size:0.9rem; margin-bottom:4px;">عرض الكل (' + mainCat.name + ')</a>';
+              html += '<a href="' + allLink + '" style="display:block; padding:8px; color:var(--olive-600); text-decoration:none; font-size:0.9rem; margin-bottom:4px;">عرض الكل (' + escapeHtml(mainCat.name) + ')</a>';
               
               subCategories.forEach(subCat => {
                   const subLink = isShopPage ? `javascript:updateCategory('${subCat.id}');toggleSidebar();` : `products.html?cat=${subCat.id}`;
-                  html += '<a href="' + subLink + '" style="display:block; padding:8px; color:var(--ink-600); text-decoration:none; font-size:0.9rem; margin-bottom:4px;">- ' + subCat.name + '</a>';
+                  html += '<a href="' + subLink + '" style="display:block; padding:8px; color:var(--ink-600); text-decoration:none; font-size:0.9rem; margin-bottom:4px;">- ' + escapeHtml(subCat.name) + '</a>';
               });
               html += '</div>';
           } else {
               const link = isShopPage ? `javascript:updateCategory('${mainCat.id}');toggleSidebar();` : `products.html?cat=${mainCat.id}`;
-              html += '<a href="' + link + '" style="display:flex; align-items:center; gap:10px; padding:12px; border-radius:10px; color:var(--ink-700); font-weight:600; text-decoration:none;">' + iconSvg(mainCat.icon || "box") + mainCat.name + '</a>';
+              html += '<a href="' + link + '" style="display:flex; align-items:center; gap:10px; padding:12px; border-radius:10px; color:var(--ink-700); font-weight:600; text-decoration:none;">' + iconSvg(mainCat.icon || "box") + escapeHtml(mainCat.name) + '</a>';
           }
           html += '</div>';
       });
@@ -194,23 +215,23 @@ function initGlobalSearch() {
       resultsBox.innerHTML = '<div class="empty-search">جاري البحث...</div>';
       const allProducts = await Store.loadAllProductsFromFirebase();
       const matched = (allProducts || []).filter(p => 
-          p.name.toLowerCase().includes(query) || 
+          (p.name || "").toLowerCase().includes(query) || 
           (p.description && p.description.toLowerCase().includes(query)) ||
-          (p.variants && p.variants.some(v => v.toLowerCase().includes(query)))
+          (p.variants && p.variants.some(v => String(v).toLowerCase().includes(query)))
       );
 
       if(matched.length === 0) {
-          resultsBox.innerHTML = '<div class="empty-search">لا توجد منتجات مطابقة لـ "'+query+'"</div>';
+          resultsBox.innerHTML = '<div class="empty-search">لا توجد منتجات مطابقة لـ "' + escapeHtml(query) + '"</div>';
           return;
       }
 
       resultsBox.innerHTML = matched.map(p => {
-          const img = p.image ? `<img src="${p.image}">` : `<div class="search-img-placeholder">${iconSvg("box")}</div>`;
+          const img = p.image ? `<img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}">` : `<div class="search-img-placeholder">${iconSvg("box")}</div>`;
           return `
-              <a href="product.html?id=${p.id}" class="search-result-item">
+              <a href="product.html?id=${encodeURIComponent(p.id)}" class="search-result-item">
                   <div class="search-item-img">${img}</div>
                   <div class="search-item-info">
-                      <h4>${p.name}</h4>
+                      <h4>${escapeHtml(p.name)}</h4>
                       <span>${formatPrice(p.price)}</span>
                   </div>
               </a>
@@ -224,16 +245,16 @@ function renderFooter() {
   if (!mount) return;
   const rawSettings = Store.getSettings() || {};
   const settings = {
-    storeName: rawSettings.storeName || "متجرك الإلكتروني",
-    storeDescription: rawSettings.storeDescription || "تجربة تسوق بسيطة، واضحة ومباشرة.",
-    phone: rawSettings.phone || "",
+    storeName: escapeHtml(rawSettings.storeName || "متجرك الإلكتروني"),
+    storeDescription: escapeHtml(rawSettings.storeDescription || "تجربة تسوق بسيطة، واضحة ومباشرة."),
+    phone: escapeHtml(rawSettings.phone || ""),
     whatsapp: rawSettings.whatsapp || "",
-    instagram: rawSettings.instagram || "",
-    tiktok: rawSettings.tiktok || "",
-    address: rawSettings.address || ""
+    instagram: escapeHtml(rawSettings.instagram || ""),
+    tiktok: escapeHtml(rawSettings.tiktok || ""),
+    address: escapeHtml(rawSettings.address || "")
   };
   const categories = (Store.getCategories() || []).slice(0, 5);
-  const catLinks = categories.map(function(c){ return '<li><a href="products.html?cat=' + c.id + '">' + c.name + '</a></li>'; }).join("");
+  const catLinks = categories.map(function(c){ return '<li><a href="products.html?cat=' + encodeURIComponent(c.id) + '">' + escapeHtml(c.name) + '</a></li>'; }).join("");
   mount.innerHTML =
     '<footer class="site-footer">' +
       '<div class="container">' +

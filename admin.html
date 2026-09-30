@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <title>لوحة تحكم الأدمن | متجرك الإلكتروني</title>
   <link rel="icon" href="assets/logo/logo.png">
-  <link rel="stylesheet" href="css/style.css?v=41">
+  <link rel="stylesheet" href="css/style.css?v=42">
 <style>
   /* === حماية ضد تمدد الصفحة وتنسيق المودال والأزرار === */
   html, body {
@@ -300,6 +300,15 @@
           <input type="file" id="productImageInput" accept="image/*">
         </div>
       </div>
+      
+      <!-- ============ إضافة حقل الصور المتعددة ============ -->
+      <div class="field">
+        <label>صور إضافية للمنتج (اختياري)</label>
+        <input type="file" id="productExtraImagesInput" accept="image/*" multiple>
+        <div id="extraImagesPreview" style="display: flex; gap: 5px; margin-top: 10px; flex-wrap: wrap;"></div>
+      </div>
+      <!-- =================================================== -->
+
       <div class="field"><label>اسم المنتج</label><input type="text" id="productName" required></div>
       <div class="field"><label>الوصف</label><textarea id="productDescription"></textarea></div>
       <div class="field"><label>السعر (د.ع)</label><input type="number" id="productPrice" min="0" required></div>
@@ -400,16 +409,16 @@
   </div>
 </div>
 
-<script src="js/config.js?v=41"></script>
-<script src="js/icons.js?v=41"></script>
+<script src="js/config.js?v=42"></script>
+<script src="js/icons.js?v=42"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="js/store.js?v=41"></script>
-<script src="js/whatsapp.js?v=41"></script>
-<script src="js/app.js?v=41"></script>
-<script src="js/auth.js?v=41"></script>
-<script src="js/admin.js?v=41"></script>
+<script src="js/store.js?v=42"></script>
+<script src="js/whatsapp.js?v=42"></script>
+<script src="js/app.js?v=42"></script>
+<script src="js/auth.js?v=42"></script>
+<script src="js/admin.js?v=42"></script>
 <script>
   // تعبئة الأيقونات الثابتة
   document.querySelector(".admin-nav").innerHTML = document.querySelector(".admin-nav").innerHTML

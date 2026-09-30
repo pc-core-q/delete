@@ -374,7 +374,7 @@ async function renderShopResults(options) {
   }
 
   const subCatContainerId = "subCategoryScroller";
-  let subCatContainer = document.getElementById(subCatContainerId);
+  let subCatContainer = document.getElementById("subCategoryScroller");
   if (shopState.categoryId !== "all" && !shopState.filterMode) {
     const currentCat = Store.getCategories().find(function(c) { return c.id === shopState.categoryId; });
     const parentId = currentCat ? (currentCat.parentId || currentCat.id) : null;
@@ -465,6 +465,31 @@ async function initProductDetailPage() {
   const hasLegacyVariants = !hasMatrix && product.variants && product.variants.length > 0;
   const productAvailable = !!product.available;
 
+  // إعداد معرض الصور (Gallery)
+  let galleryHtml = "";
+  if (product.image) {
+    galleryHtml += '<img id="mainProductDetailImage" src="' + escapeHtml(product.image) + '" alt="' + escapeHtml(product.name) + '" style="width:100%; height:auto; aspect-ratio: 1 / 1; object-fit:cover; border-radius:16px; margin-bottom:10px;">';
+    
+    // إضافة الصور المصغرة إذا كانت الصور الإضافية موجودة
+    if (product.images && product.images.length > 0) {
+      galleryHtml += '<div class="product-thumbnails" style="display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px;">';
+      
+      // الصورة الرئيسية كمصغر أول
+      galleryHtml += '<img src="' + escapeHtml(product.image) + '" onclick="document.getElementById(\'mainProductDetailImage\').src=this.src" style="width: 70px; height: 70px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid var(--olive-700); flex-shrink: 0;">';
+      
+      // الصور الإضافية كمصغرات
+      product.images.forEach(imgUrl => {
+        galleryHtml += '<img src="' + escapeHtml(imgUrl) + '" onclick="document.getElementById(\'mainProductDetailImage\').src=this.src; document.querySelectorAll(\'.product-thumbnails img\').forEach(img => img.style.borderColor=\'var(--line-strong)\'); this.style.borderColor=\'var(--olive-700)\';" style="width: 70px; height: 70px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid var(--line-strong); flex-shrink: 0;">';
+      });
+      galleryHtml += '</div>';
+    }
+  } else {
+    // في حالة عدم وجود صورة رئيسية، نعرض أيقونة القسم
+    const cat = Store.getCategories().find(function (c) { return c.id === product.categoryId; });
+    const key = cat ? cat.icon : "box";
+    galleryHtml = '<div class="placeholder-icon" style="height: 100%; display: flex; align-items: center; justify-content: center; background: var(--olive-50); border-radius: 16px;">' + iconSvg(key) + "</div>";
+  }
+
   let matrixHtml = "";
   if (hasColors) {
     matrixHtml +=
@@ -518,14 +543,14 @@ async function initProductDetailPage() {
   const initiallyOutOfStock = !productAvailable || initialStock <= 0;
 
   mount.innerHTML =
-    '<div class="detail-grid"><div class="detail-media">' + productMediaHtml(product) + "</div>" +
+    '<div class="detail-grid"><div class="detail-media">' + galleryHtml + "</div>" +
       '<div class="detail-info">' +
         '<span class="product-cat">' + escapeHtml(Store.getCategoryName(product.categoryId)) + "</span>" +
         "<h1>" + escapeHtml(product.name) + "</h1>" +
         '<div class="stock-line" id="stockLine"><span class="dot' + (initiallyOutOfStock ? " dot-out" : "") + '"></span><span id="stockLineText">' + (initiallyOutOfStock ? "غير متوفر حاليًا" : "متوفر — الكمية " + initialStock) + "</span></div>" +
         '<div class="detail-price">' + formatPrice(product.price) + "</div>" +
         '<div id="descWrapper" style="position:relative; overflow:hidden; max-height:80px; transition: max-height 0.4s ease;">' +
-          '<p style="margin:0;">' + escapeHtml(product.description || "") + '</p>' +
+          '<p style="margin:0; white-space: pre-wrap;">' + escapeHtml(product.description || "") + '</p>' +
           '<div id="descFade" style="position:absolute; bottom:0; left:0; right:0; height:40px; background:linear-gradient(transparent, var(--cream));"></div>' +
         '</div>' +
         '<button id="descToggle" style="background:none; border:none; color:var(--olive-700); font-weight:700; font-size:0.9rem; padding:4px 0; margin-bottom:12px; cursor:pointer;">قراءة المزيد ↓</button>' +
@@ -608,12 +633,13 @@ async function initProductDetailPage() {
         const label = document.getElementById("selectedColorLabel");
         if (label) label.textContent = selectedColor;
         const colorObj = product.colors.find(function (c) { return c.name === selectedColor; });
-        const mediaContainer = document.querySelector(".detail-media");
-        if (mediaContainer) {
-          mediaContainer.innerHTML = (colorObj && colorObj.image)
-            ? '<img src="' + escapeHtml(colorObj.image) + '" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;border-radius:16px;">'
-            : productMediaHtml(product);
+        
+        // تحديث الصورة الرئيسية عند اختيار لون جديد (إذا كانت له صورة)
+        const mainImage = document.getElementById("mainProductDetailImage");
+        if (mainImage) {
+            mainImage.src = (colorObj && colorObj.image) ? escapeHtml(colorObj.image) : escapeHtml(product.image);
         }
+        
         refreshAvailabilityUI();
       });
     });
@@ -659,11 +685,11 @@ async function initProductDetailPage() {
         dropdownArrow.style.transform = "rotate(0deg)";
         dropdownList.querySelectorAll("li").forEach(function (el) { el.style.fontWeight = ""; });
         li.style.fontWeight = "700";
-        const mediaContainer = document.querySelector(".detail-media");
-        if (product.variantImages && product.variantImages[selectedVariant]) {
-          mediaContainer.innerHTML = '<img src="' + escapeHtml(product.variantImages[selectedVariant]) + '" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;border-radius:16px;">';
-        } else {
-          mediaContainer.innerHTML = productMediaHtml(product);
+        
+        // تحديث الصورة الرئيسية عند اختيار Variant
+        const mainImage = document.getElementById("mainProductDetailImage");
+        if (mainImage) {
+            mainImage.src = (product.variantImages && product.variantImages[selectedVariant]) ? escapeHtml(product.variantImages[selectedVariant]) : escapeHtml(product.image);
         }
       });
     });

@@ -141,15 +141,15 @@ function buildCartWhatsAppLink(cartLines, products, info) {
   });
 
   messageLines.push("");
-  messageLines.push("💰 *السعر الإجمالي:* *" + formatPrice(total) + "* (غير شامل أجور التوصيل)");
+  messageLines.push(" *السعر الإجمالي:* *" + formatPrice(total) + "* (غير شامل أجور التوصيل)");
   messageLines.push("");
-  messageLines.push("📍 *معلومات التوصيل:*");
-  messageLines.push("▪️ المحافظة: *" + info.gov + "*");
-  messageLines.push("▪️ المنطقة: *" + info.area + "*");
-  messageLines.push("▪️ أقرب نقطة دالة: " + info.landmark);
-  messageLines.push("▪️ رقم الهاتف: *" + info.phone + "*");
+  messageLines.push(" *معلومات التوصيل:*");
+  messageLines.push(" المحافظة: *" + info.gov + "*");
+  messageLines.push(" المنطقة: *" + info.area + "*");
+  messageLines.push(" أقرب نقطة دالة: " + info.landmark);
+  messageLines.push(" رقم الهاتف: *" + info.phone + "*");
   if (info.notes) {
-    messageLines.push("📝 *ملاحظات:* " + info.notes);
+    messageLines.push(" *ملاحظات:* " + info.notes);
   }
   messageLines.push("");
   messageLines.push("أنتظر تأكيدكم لإتمام الطلب، شكراً لكم! ");

@@ -72,8 +72,8 @@ function showDeliveryModal(onConfirm) {
 
 function variantLineText(item) {
   const parts = [];
-  if (item.color) parts.push("النوع/النكهة: " + item.color);
-  if (item.size) parts.push("الوزن/الحجم: " + item.size);
+  if (item.color) parts.push("المقاس: " + item.color);
+  if (item.size) parts.push("اللون: " + item.size);
   if (!parts.length && item.variant) parts.push("الخيار: " + item.variant);
   return parts.join(" — ");
 }

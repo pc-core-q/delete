@@ -102,22 +102,22 @@ function buildProductWhatsAppLink(product, qty, info, selection) {
   const variantLine = variantLineText(selection);
 
   const lines = [
-    "👋 السلام عليكم، أود طلب هذا المنتج:",
+    " السلام عليكم، أود طلب هذا المنتج:",
     "",
-    "📦 *تفاصيل الطلب:*",
-    "▪️ اسم المنتج: *" + product.name + "*",
+    " *تفاصيل الطلب:*",
+    "- اسم المنتج: *" + product.name + "*",
     variantLine ? "▪️ " + variantLine : null,
-    "▪️ الكمية: " + quantity,
-    "▪️ السعر: *" + formatPrice(total) + "* (غير شامل أجور التوصيل)",
+    "- الكمية: " + quantity,
+    "- السعر: *" + formatPrice(total) + "* (غير شامل أجور التوصيل)",
     "",
-    "📍 *معلومات التوصيل:*",
-    "▪️ المحافظة: *" + info.gov + "*",
-    "▪️ المنطقة: *" + info.area + "*",
-    "▪️ أقرب نقطة دالة: " + info.landmark,
-    "▪️ رقم الهاتف: *" + info.phone + "*",
-    info.notes ? "📝 *ملاحظات:* " + info.notes : null,
+    " *معلومات التوصيل:*",
+    "- المحافظة: *" + info.gov + "*",
+    "- المنطقة: *" + info.area + "*",
+    "- أقرب نقطة دالة: " + info.landmark,
+    "- رقم الهاتف: *" + info.phone + "*",
+    info.notes ? " *ملاحظات:* " + info.notes : null,
     "",
-    "أنتظر تأكيدكم لإتمام الطلب، شكراً لكم! 🙏"
+    "أنتظر تأكيدكم لإتمام الطلب، شكراً لكم! "
   ].filter(Boolean);
 
   return buildWhatsAppUrl(lines.join("\n"));
@@ -125,9 +125,9 @@ function buildProductWhatsAppLink(product, qty, info, selection) {
 
 function buildCartWhatsAppLink(cartLines, products, info) {
   const messageLines = [
-    "👋 السلام عليكم، أود طلب هذه المنتجات من السلة:",
+    " السلام عليكم، أود طلب هذه المنتجات من السلة:",
     "",
-    "🛒 *تفاصيل الطلب:*"
+    " *تفاصيل الطلب:*"
   ];
 
   let total = 0;
@@ -152,7 +152,7 @@ function buildCartWhatsAppLink(cartLines, products, info) {
     messageLines.push("📝 *ملاحظات:* " + info.notes);
   }
   messageLines.push("");
-  messageLines.push("أنتظر تأكيدكم لإتمام الطلب، شكراً لكم! 🙏");
+  messageLines.push("أنتظر تأكيدكم لإتمام الطلب، شكراً لكم! ");
 
   return buildWhatsAppUrl(messageLines.join("\n"));
 }

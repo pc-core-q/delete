@@ -106,7 +106,7 @@ function buildProductWhatsAppLink(product, qty, info, selection) {
     "",
     " *تفاصيل الطلب:*",
     "- اسم المنتج: *" + product.name + "*",
-    variantLine ? "▪️ " + variantLine : null,
+    variantLine ? " " + variantLine : null,
     "- الكمية: " + quantity,
     "- السعر: *" + formatPrice(total) + "* (غير شامل أجور التوصيل)",
     "",

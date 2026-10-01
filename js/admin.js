@@ -1,7 +1,7 @@
 /* ==========================================================================
    admin.js
    منطق لوحة تحكم الأدمن بالكامل (admin.html). 
-   تم التحديث: دعم بيانات الزبون والتوصيل في سجل الطلبات وحماية النصوص بدقة.
+   تم التحديث: دعم الصور المتعددة وتصحيح حفظ الألوان وحماية المخزون.
    ========================================================================== */
 
 let editingProductId = null;
@@ -98,12 +98,13 @@ async function uploadToImgBB(file, isBanner = false) {
     return rawUrl;
   }
 
- // القديم:
-// const transform = isBanner ? "tr:w-1200,q-90,f-auto" : "tr:w-800,q-85,f-auto";
-// الجديد (توفير هائل في الحجم مع الحفاظ على النقاء التام):
-const transform = isBanner
-  ? "tr:w-1200,q-90,f-auto"   // البنر يكفيه 800 بكسل بجودة 75
-  : "tr:w-800,q-85,f-auto";  // صور المنتجات 450 بكسل بجودة 70 ممتازة جداً وتزن 25KB فقط
+  // القديم:
+  // const transform = isBanner ? "tr:w-1200,q-90,f-auto" : "tr:w-800,q-85,f-auto";
+  // الجديد (توفير هائل في الحجم مع الحفاظ على النقاء التام):
+  const transform = isBanner
+    ? "tr:w-1200,q-90,f-auto"   // البنر يكفيه 800 بكسل بجودة 75
+    : "tr:w-800,q-85,f-auto";  // صور المنتجات 450 بكسل بجودة 70 ممتازة جداً وتزن 25KB فقط
+  
   // 4. بناء الرابط النهائي عبر ImageKit CDN
   return imageKitEndpoint + "/" + transform + "/" + match[1];
 }
@@ -278,15 +279,32 @@ function renderColorsList() {
 
   list.querySelectorAll(".color-name-input").forEach(function (inp) {
     inp.addEventListener("input", function () {
-      pendingColors[Number(this.dataset.colorIdx)].name = this.value;
+      const idx = Number(this.dataset.colorIdx);
+      const oldName = pendingColors[idx].name;
+      const newName = this.value;
+
+      // تحديث مفاتيح المخزون تلقائياً حتى لا تضيع الكميات المدخلة عند تغيير اسم اللون
+      if (oldName && oldName !== newName) {
+          Object.keys(pendingInventory).forEach(function(key) {
+              if (key.startsWith(oldName + "||")) {
+                  const newKey = key.replace(oldName + "||", newName + "||");
+                  pendingInventory[newKey] = pendingInventory[key];
+                  delete pendingInventory[key];
+              }
+          });
+      }
+
+      pendingColors[idx].name = newName;
       renderInventoryGrid();
     });
   });
+
   list.querySelectorAll(".color-hex-input").forEach(function (inp) {
     inp.addEventListener("input", function () {
       pendingColors[Number(this.dataset.colorIdx)].hex = this.value;
     });
   });
+
   list.querySelectorAll(".color-image-input").forEach(function (inp) {
     inp.addEventListener("change", async function () {
       const idx = Number(this.dataset.colorIdx);
@@ -417,7 +435,9 @@ function wireProductModal() {
   const addColorBtn = document.getElementById("addColorBtn");
   if (addColorBtn) {
     addColorBtn.addEventListener("click", function () {
-      pendingColors.push({ name: "", hex: "#7c9a4c", image: null });
+      // إعطاء اسم افتراضي فوراً بمجرد النقر لمنع المشاكل
+      const defaultName = "لون " + (pendingColors.length + 1);
+      pendingColors.push({ name: defaultName, hex: "#7c9a4c", image: null });
       renderColorsList();
     });
   }
@@ -493,13 +513,21 @@ function closeProductModal() {
   editingProductId = null;
 }
 
-// دالة حفظ المنتج (معدلة لدعم الصور المتعددة)
+// دالة حفظ المنتج (معدلة لدعم الصور المتعددة وتصحيح حفظ الألوان)
 async function saveProductForm(e) {
   e.preventDefault();
-  
+
+  // 1. تصحيح الألوان: إعطاء اسم افتراضي للون لتجنب حذفه إذا نسي المستخدم كتابة الاسم
   const cleanColors = pendingColors
-    .filter(function (c) { return c.name && c.name.trim(); })
-    .map(function (c) { return { name: c.name.trim(), hex: c.hex || "#7c9a4c", image: c.image || null }; });
+    .filter(function (c) { return (c.name && c.name.trim()) || c.image || c.hex !== "#7c9a4c"; })
+    .map(function (c, idx) {
+        return {
+            name: (c.name && c.name.trim()) ? c.name.trim() : ("لون " + (idx + 1)),
+            hex: c.hex || "#7c9a4c",
+            image: c.image || null
+        };
+    });
+
   const cleanSizes = currentSizesFromInput();
   const hasMatrix = cleanColors.length > 0 || cleanSizes.length > 0;
 
@@ -519,11 +547,11 @@ async function saveProductForm(e) {
     });
     totalStock = sum;
   }
-  
+
   // رفع الصور الإضافية
   const extraImagesInput = document.getElementById("productExtraImagesInput");
   let extraImagesUrls = [];
-  
+
   // جلب الصور القديمة إذا كنا في وضع التعديل
   if (editingProductId) {
       const existingProduct = Store.getProduct(editingProductId);
@@ -535,14 +563,23 @@ async function saveProductForm(e) {
   if (extraImagesInput && extraImagesInput.files.length > 0) {
       showToast("جاري رفع الصور الإضافية، يرجى الانتظار...");
       const uploadPromises = Array.from(extraImagesInput.files).map(file => uploadToImgBB(file, false));
-      
+
       try {
           const uploadedUrls = await Promise.all(uploadPromises);
-          // إضافة الصور الجديدة للصور القديمة (تجنب الحذف)
           extraImagesUrls = extraImagesUrls.concat(uploadedUrls.filter(url => url !== null));
       } catch (err) {
           showToast("حدث خطأ أثناء رفع الصور الإضافية");
           console.error(err);
+      }
+  }
+
+  // 2. تصحيح الصور: تعيين صورة رئيسية تلقائياً من الصور الإضافية أو صور الألوان إذا نسيها المستخدم
+  if (!pendingProductImage) {
+      if (extraImagesUrls.length > 0) {
+          pendingProductImage = extraImagesUrls.shift(); // جعل أول صورة إضافية هي الرئيسية
+      } else if (cleanColors.length > 0) {
+          const colorImg = cleanColors.find(c => c.image);
+          if (colorImg) pendingProductImage = colorImg.image;
       }
   }
 
@@ -555,7 +592,7 @@ async function saveProductForm(e) {
     available: document.getElementById("productAvailable").checked,
     featured: document.getElementById("productFeatured").checked,
     isNew: document.getElementById("productNew").checked,
-    isOffer: document.getElementById("productOffer") ? document.getElementById("productOffer").checked : false, 
+    isOffer: document.getElementById("productOffer") ? document.getElementById("productOffer").checked : false,
     colors: cleanColors,
     sizes: cleanSizes,
     inventory: cleanInventory,
@@ -895,7 +932,7 @@ function saveAdForm(e) {
 }
 
 /* ---------------------------------------------------------------------- */
-/* سجلّ الطلبات ودالة خصم المخزون                                          */
+/* سجلّ الطلبات ودالة خصم المخزون                                         */
 /* ---------------------------------------------------------------------- */
 
 // دالة جديدة لخصم المخزون عند تأكيد الطلب

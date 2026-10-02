@@ -1,5 +1,5 @@
 /* ==========================================================================
-   products.js (النسخة المحسنة — الألوان تحت الصورة مباشرة)
+   products.js (النسخة المحسنة — ألوان متباعدة بوضوح تحت الصورة)
    ========================================================================== */
 
 function productMediaHtml(product) {
@@ -471,20 +471,20 @@ async function initProductDetailPage() {
     galleryHtml = '<div class="placeholder-icon" style="height: 100%; display: flex; align-items: center; justify-content: center; background: var(--olive-50); border-radius: 16px;">' + iconSvg(key) + "</div>";
   }
 
-  // قسم اختيار الألوان يوضع تحت الصورة مباشرة
+  // قسم اختيار الألوان يوضع تحت الصورة بمسافات وهوامش واضحة ومتباعدة
   let colorsHtml = "";
   if (hasColors) {
     colorsHtml =
-      '<div class="detail-media-colors">' +
-        '<div class="color-head">' +
-          '<span class="color-label">اللون:</span> ' +
-          '<strong id="selectedColorLabel" class="color-name">' + escapeHtml(product.colors[0] ? product.colors[0].name : "") + '</strong>' +
+      '<div class="detail-media-colors" style="margin-top:24px; padding:4px 0;">' +
+        '<div class="color-head" style="margin-bottom:12px; font-size:.95rem;">' +
+          '<span class="color-label" style="color:var(--ink-500);">اللون:</span> ' +
+          '<strong id="selectedColorLabel" class="color-name" style="color:var(--olive-900); font-weight:700;">' + escapeHtml(product.colors[0] ? product.colors[0].name : "") + '</strong>' +
         '</div>' +
-        '<div id="colorSwatches" class="color-swatches-wrap">' +
+        '<div id="colorSwatches" class="color-swatches-wrap" style="display:flex; flex-wrap:wrap; gap:16px; align-items:center;">' +
           product.colors.map(function (c, i) {
             const bg = c.hex || "#ccc";
             return '<button type="button" class="color-swatch' + (i === 0 ? " is-selected" : "") + '" data-color="' + escapeHtml(c.name) + '" title="' + escapeHtml(c.name) + '" ' +
-              'style="background:' + escapeHtml(bg) + ';"></button>';
+              'style="background:' + escapeHtml(bg) + '; width:42px; height:42px; border-radius:50%; border:2px solid #fff; padding:0; cursor:pointer; flex-shrink:0;"></button>';
           }).join('') +
         '</div>' +
       '</div>';

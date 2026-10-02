@@ -1,5 +1,5 @@
 /* ==========================================================================
-   products.js (النسخة المحسنة — أداء فائق وسرعة ظهور بدون استهلاك الباقات)
+   products.js (النسخة المحسنة — الألوان تحت الصورة مباشرة)
    ========================================================================== */
 
 function productMediaHtml(product) {
@@ -461,7 +461,7 @@ async function initProductDetailPage() {
   const hasLegacyVariants = !hasMatrix && product.variants && product.variants.length > 0;
   const productAvailable = !!product.available;
 
-  // عرض صورة واحدة مباشرة تتغير ديناميكياً مع اختيار اللون أو الخيار
+  // صورة واحدة مباشرة
   let galleryHtml = "";
   if (product.image) {
     galleryHtml = '<div class="detail-gallery"><img id="mainProductDetailImage" src="' + escapeHtml(product.image) + '" alt="' + escapeHtml(product.name) + '" class="detail-gallery-img"></div>';
@@ -471,23 +471,29 @@ async function initProductDetailPage() {
     galleryHtml = '<div class="placeholder-icon" style="height: 100%; display: flex; align-items: center; justify-content: center; background: var(--olive-50); border-radius: 16px;">' + iconSvg(key) + "</div>";
   }
 
-  let matrixHtml = "";
+  // قسم اختيار الألوان يوضع تحت الصورة مباشرة
+  let colorsHtml = "";
   if (hasColors) {
-    matrixHtml +=
-      '<div class="field" style="margin-bottom:16px;">' +
-        '<label style="display:block;margin-bottom:8px;font-weight:600;">اللون:</label>' +
-        '<div id="colorSwatches" style="display:flex;flex-wrap:wrap;gap:10px;">' +
+    colorsHtml =
+      '<div class="detail-media-colors">' +
+        '<div class="color-head">' +
+          '<span class="color-label">اللون:</span> ' +
+          '<strong id="selectedColorLabel" class="color-name">' + escapeHtml(product.colors[0] ? product.colors[0].name : "") + '</strong>' +
+        '</div>' +
+        '<div id="colorSwatches" class="color-swatches-wrap">' +
           product.colors.map(function (c, i) {
             const bg = c.hex || "#ccc";
             return '<button type="button" class="color-swatch' + (i === 0 ? " is-selected" : "") + '" data-color="' + escapeHtml(c.name) + '" title="' + escapeHtml(c.name) + '" ' +
               'style="background:' + escapeHtml(bg) + ';"></button>';
           }).join('') +
         '</div>' +
-        '<div id="selectedColorLabel" style="margin-top:6px;font-size:.85rem;color:var(--ink-600);">' + escapeHtml(product.colors[0] ? product.colors[0].name : "") + '</div>' +
       '</div>';
   }
+
+  // قسم المقاسات (يبقى في تفاصيل المنتج بالأسفل)
+  let sizesHtml = "";
   if (hasSizes) {
-    matrixHtml +=
+    sizesHtml =
       '<div class="field" style="margin-bottom:16px;">' +
         '<label style="display:block;margin-bottom:8px;font-weight:600;">المقاس:</label>' +
         '<div id="sizeButtons" style="display:flex;flex-wrap:wrap;gap:8px;">' +
@@ -523,7 +529,11 @@ async function initProductDetailPage() {
   const initiallyOutOfStock = !productAvailable || initialStock <= 0;
 
   mount.innerHTML =
-    '<div class="detail-grid"><div class="detail-media">' + galleryHtml + "</div>" +
+    '<div class="detail-grid">' +
+      '<div class="detail-media">' +
+        galleryHtml +
+        colorsHtml +
+      '</div>' +
       '<div class="detail-info">' +
         '<span class="product-cat">' + escapeHtml(Store.getCategoryName(product.categoryId)) + "</span>" +
         "<h1>" + escapeHtml(product.name) + "</h1>" +
@@ -534,7 +544,7 @@ async function initProductDetailPage() {
           '<div id="descFade" style="position:absolute; bottom:0; left:0; right:0; height:40px; background:linear-gradient(transparent, var(--cream));"></div>' +
         '</div>' +
         '<button id="descToggle" style="background:none; border:none; color:var(--olive-700); font-weight:700; font-size:0.9rem; padding:4px 0; margin-bottom:12px; cursor:pointer;">قراءة المزيد ↓</button>' +
-        matrixHtml +
+        sizesHtml +
         legacyVariantsHtml +
         '<div class="qty-stepper" id="qtyStepperWrap" style="' + (initiallyOutOfStock ? "display:none;" : "") + '"><button type="button" id="qtyMinus">−</button><input type="number" id="qtyInput" value="1" min="1" max="' + Math.max(initialStock, 1) + '"><button type="button" id="qtyPlus">+</button></div>' +
         '<div class="detail-actions" id="detailActions">' +
@@ -544,7 +554,8 @@ async function initProductDetailPage() {
           ) +
         "</div>" +
         '<div class="detail-meta"><span>القسم: ' + escapeHtml(Store.getCategoryName(product.categoryId)) + '</span><span id="availabilityMeta">حالة التوفر: ' + (initiallyOutOfStock ? "غير متوفر" : "متوفر") + '</span></div>' +
-      "</div></div>";
+      "</div>" +
+    "</div>";
 
   let selectedColor = hasColors ? product.colors[0].name : null;
   let selectedSize = hasSizes ? product.sizes[0] : null;

@@ -135,15 +135,23 @@ h2{font-size:clamp(1.35rem,2.6vw,2rem)}
 .shop-tab-btn.active,.cat-sub-chip.active{background:var(--olive-900)!important;border-color:var(--olive-900)!important;box-shadow:none}
 @media(min-width:768px) and (max-width:900px){.shop-toolbar{grid-template-columns:1fr 200px auto}}
 
-/* Product detail — صورة واحدة مباشرة بدون سحب أو تمرير */
+/* Product detail — صورة واحدة وألوان واضحة تحتها ومتباعدة */
 .detail-media{position:sticky;top:92px;aspect-ratio:auto;background:none;border:0;border-radius:0;overflow:visible}
 .detail-gallery{display:block;width:100%;border-radius:var(--r-card);overflow:hidden;background:#eceff3}
 .detail-gallery-img{display:block;width:100%;aspect-ratio:4/5;object-fit:cover;background:#eceff3;transition:opacity .2s ease}
 .gallery-hint{display:none!important}
+
+/* حاوية الألوان أسفل الصورة */
+.detail-media-colors{margin-top:22px!important;padding:4px 2px}
+.color-head{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:.95rem}
+.color-label{color:var(--ink-500)}
+.color-name{color:var(--olive-900);font-weight:700}
+.color-swatches-wrap{display:flex!important;flex-wrap:wrap!important;gap:16px!important;align-items:center}
+
 .detail-info h1{font-size:clamp(1.6rem,3.4vw,2.4rem);margin:4px 0 8px}
 .detail-price{font-size:1.5rem;color:var(--olive-900)}
-.color-swatch{width:40px;height:40px;border-radius:50%;border:2px solid #fff;padding:0;cursor:pointer;box-shadow:0 0 0 1px var(--line-strong);transition:box-shadow .15s}
-.color-swatch.is-selected{box-shadow:0 0 0 2px var(--olive-900)}
+.color-swatch{width:42px!important;height:42px!important;border-radius:50%!important;border:2px solid #fff!important;padding:0!important;cursor:pointer;box-shadow:0 0 0 1.5px var(--line-strong)!important;transition:transform .15s ease, box-shadow .15s ease;flex-shrink:0}
+.color-swatch.is-selected{box-shadow:0 0 0 2.5px var(--olive-900)!important;transform:scale(1.08)}
 .size-btn{min-width:52px!important;min-height:46px;padding:0 14px;border-radius:var(--r-ctl);border:1px solid var(--line-strong);background:#fff;color:var(--ink-700);font-weight:600;cursor:pointer}
 .size-btn.is-selected{background:var(--olive-900);border-color:var(--olive-900);color:#fff}
 .qty-stepper{border-radius:var(--r-ctl)}

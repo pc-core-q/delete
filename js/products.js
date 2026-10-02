@@ -461,24 +461,10 @@ async function initProductDetailPage() {
   const hasLegacyVariants = !hasMatrix && product.variants && product.variants.length > 0;
   const productAvailable = !!product.available;
 
-  // إعداد العرض المباشر للصور (سلايدر السحب)
+  // عرض صورة واحدة مباشرة تتغير ديناميكياً مع اختيار اللون أو الخيار
   let galleryHtml = "";
   if (product.image) {
-    let allImages = [product.image];
-    if (product.images && product.images.length > 0) {
-      allImages = allImages.concat(product.images);
-    }
-    
-    galleryHtml += '<div class="detail-gallery">';
-    allImages.forEach(function(imgUrl, index) {
-      const idAttr = index === 0 ? 'id="mainProductDetailImage"' : '';
-      galleryHtml += '<img ' + idAttr + ' src="' + escapeHtml(imgUrl) + '" alt="' + escapeHtml(product.name) + '" class="detail-gallery-img">';
-    });
-    galleryHtml += '</div>';
-    
-    if (allImages.length > 1) {
-      galleryHtml += '<div class="gallery-hint">اسحب لرؤية باقي الصور ⟷</div>';
-    }
+    galleryHtml = '<div class="detail-gallery"><img id="mainProductDetailImage" src="' + escapeHtml(product.image) + '" alt="' + escapeHtml(product.name) + '" class="detail-gallery-img"></div>';
   } else {
     const cat = Store.getCategories().find(function (c) { return c.id === product.categoryId; });
     const key = cat ? cat.icon : "box";

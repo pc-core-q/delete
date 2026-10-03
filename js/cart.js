@@ -2,6 +2,7 @@
    cart.js
    منطق صفحة السلة (cart.html) فقط — محمي بالتحقق من وجود #cartItems حتى
    يمكن تضمين الملف بأمان دون أن يؤثر على صفحات أخرى.
+   تم التحديث: إضافة رسائل توست (Toasts) ديناميكية ملونة لتجربة مستخدم أفضل.
    ========================================================================== */
 
 // صورة سطر السلة: صورة اللون المحدد إن وُجدت، وإلا صورة الخيار النصي القديم، وإلا صورة المنتج
@@ -127,8 +128,16 @@ function stepCartQty(itemKey, delta) {
   if (!line) return;
   const product = Store.getProduct(line.productId);
   if (!product) return;
+  
   const maxStock = Store.getVariantStock(product, line.color, line.size);
-  const next = Math.max(1, Math.min(maxStock, line.qty + delta));
+  const next = line.qty + delta;
+  
+  if (next > maxStock) {
+      if (typeof showToast === "function") showToast("عذراً، هذه هي الكمية القصوى المتوفرة.", "error");
+      return;
+  }
+  if (next < 1) return;
+
   Store.setQty(itemKey, next);
   renderCartPage();
 }
@@ -139,9 +148,17 @@ function setCartQty(itemKey, value) {
   if (!line) return;
   const product = Store.getProduct(line.productId);
   if (!product) return;
+  
   const maxStock = Store.getVariantStock(product, line.color, line.size);
   let qty = parseInt(value, 10) || 1;
-  qty = Math.max(1, Math.min(maxStock, qty));
+  
+  if (qty > maxStock) {
+      qty = maxStock;
+      if (typeof showToast === "function") showToast("تم ضبط الكمية إلى الحد الأقصى المتوفر (" + maxStock + ").", "error");
+  } else if (qty < 1) {
+      qty = 1;
+  }
+  
   Store.setQty(itemKey, qty);
   renderCartPage();
 }
@@ -149,6 +166,7 @@ function setCartQty(itemKey, value) {
 function removeCartLine(itemKey) {
   Store.removeFromCart(itemKey);
   renderCartPage();
+  if (typeof showToast === "function") showToast("تم إزالة المنتج من السلة", "success");
 }
 
 async function initCartPage() {
@@ -163,7 +181,7 @@ async function initCartPage() {
   checkoutBtn.addEventListener("click", function () {
     if (!Store.getCart().length) return;
     if (!isWhatsAppConfigured()) {
-      showToast("لم يتم إعداد رقم واتساب بعد. الرجاء إضافته من لوحة التحكم ← الإعدادات.");
+      if (typeof showToast === "function") showToast("لم يتم إعداد رقم واتساب بعد. الرجاء إضافته من لوحة التحكم ← الإعدادات.", "error");
       return;
     }
     orderCartViaWhatsApp();

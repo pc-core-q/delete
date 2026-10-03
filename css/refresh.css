@@ -49,7 +49,6 @@ h2{font-size:clamp(1.35rem,2.6vw,2rem)}
 .hero-copy h1{margin:14px 0 12px}
 .hero-trust div{border-radius:var(--r-ctl);background:#fff}
 .hero-art{background:none;box-shadow:none;border-radius:var(--r-card);min-height:0;width:100%}
-/* التعديل هنا فقط: النسبة أصبحت 4:3 */
 .promo-slider-container{aspect-ratio:4/3;border-radius:var(--r-card);box-shadow:none}
 .hero-art-default{aspect-ratio:4/3;border-radius:var(--r-card);background:var(--olive-900);display:grid;place-items:center}
 .hero-art-default img{width:34%}
@@ -189,6 +188,29 @@ h2{font-size:clamp(1.35rem,2.6vw,2rem)}
 .detail-gallery-img{display:block;width:100%;aspect-ratio:4/5;object-fit:cover;background:#eceff3;transition:opacity .2s ease}
 .gallery-hint{display:none!important}
 
+/* Product Gallery Thumbnails */
+.gallery-thumbnails {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+.gallery-thumb {
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  object-fit: cover;
+  flex-shrink: 0;
+  transition: border-color 0.2s ease;
+}
+.gallery-thumb.active {
+  border-color: var(--olive-700);
+}
+
 /* حاوية الألوان أسفل الصورة */
 .detail-media-colors{margin-top:22px!important;padding:4px 2px}
 .color-head{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:.95rem}
@@ -240,9 +262,58 @@ h2{font-size:clamp(1.35rem,2.6vw,2rem)}
 .field input,.field select,.field textarea{border-radius:var(--r-ctl);min-height:48px;font-size:16px}
 .field textarea{min-height:120px}
 
-/* Toast */
+/* Toast (Dynamic Colors) */
 .toast{right:auto;left:50%;bottom:20px;transform:translate(-50%,12px);border-radius:var(--r-ctl);padding:12px 18px}
 .toast.show{transform:translate(-50%,0)}
+.toast-success { background-color: #168a67 !important; color: white !important; }
+.toast-error { background-color: var(--danger) !important; color: white !important; }
+
+/* Skeleton Loading Animation */
+@keyframes shimmer {
+  0% { background-position: -468px 0; }
+  100% { background-position: 468px 0; }
+}
+.skeleton-card {
+  background: #f6f7f8;
+  background-image: linear-gradient(to right, #f6f7f8 0%, #edeef1 20%, #f6f7f8 40%, #f6f7f8 100%);
+  background-repeat: no-repeat;
+  background-size: 800px 100%;
+  animation-duration: 1s;
+  animation-fill-mode: forwards;
+  animation-iteration-count: infinite;
+  animation-name: shimmer;
+  animation-timing-function: linear;
+  border-radius: var(--r-card);
+  height: 300px; /* تقريبي لارتفاع البطاقة */
+}
+
+/* Back to Top Button */
+#backToTopBtn {
+  display: none;
+  position: fixed;
+  bottom: 25px;
+  right: 25px;
+  z-index: 99;
+  font-size: 18px;
+  border: none;
+  outline: none;
+  background-color: var(--olive-700);
+  color: white;
+  cursor: pointer;
+  padding: 12px;
+  border-radius: 50%;
+  width: 45px;
+  height: 45px;
+  box-shadow: var(--shadow-soft);
+  transition: background-color 0.3s, transform 0.3s;
+}
+#backToTopBtn:hover {
+  background-color: var(--olive-900);
+  transform: translateY(-3px);
+}
+body:has(#detailActions) #backToTopBtn {
+  bottom: 100px; /* رفع الزر إذا كان شريط "أضف للسلة" موجوداً في الجوال */
+}
 
 @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 

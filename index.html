@@ -6,8 +6,8 @@
   <title>الرئيسية | متجرك الإلكتروني</title>
   <meta name="description" content="تصفّح منتجاتنا واطلب مباشرة عبر واتساب بسهولة وسرعة.">
   <link rel="icon" href="assets/logo/logo.png">
-  <link rel="stylesheet" href="css/style.css?v=43">
-  <link rel="stylesheet" href="css/refresh.css?v=43">
+  <link rel="stylesheet" href="css/style.css?v=44">
+  <link rel="stylesheet" href="css/refresh.css?v=44">
 </head>
 <body>
 
@@ -137,13 +137,13 @@
   
 <div id="site-footer"></div>
 
-<script src="js/config.js?v=43"></script>
-<script src="js/icons.js?v=43"></script>
+<script src="js/config.js?v=44"></script>
+<script src="js/icons.js?v=44"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="js/store.js?v=43"></script>
-<script src="js/whatsapp.js?v=43"></script>
-<script src="js/app.js?v=43"></script>
+<script src="js/store.js?v=44"></script>
+<script src="js/whatsapp.js?v=44"></script>
+<script src="js/app.js?v=44"></script>
 <script>
   let slideInterval = null;
 
@@ -247,7 +247,6 @@
   }
 
   async function renderAllHomeContent() {
-    // 1. أيقونات قسم المميزات
     const featureGrid = document.querySelector(".feature-grid");
     if (featureGrid && typeof iconSvg === "function") {
       featureGrid.innerHTML = featureGrid.innerHTML
@@ -257,7 +256,6 @@
         .replace("__ICON_HEART__", iconSvg("heart"));
     }
 
-    // 2. روابط التواصل
     const s = Store.getSettings();
     const homeSocial = document.getElementById("homeSocialRow");
     if (homeSocial && typeof iconSvg === "function") {
@@ -268,7 +266,6 @@
       homeSocial.innerHTML = socialHtml || '<span style="opacity:.6;">لم يتم إعداد روابط التواصل بعد.</span>';
     }
 
-    // 3. رسم الأقسام
     const catEl = document.getElementById("homeCategories");
     if (catEl) {
       const categories = Store.getCategories();
@@ -279,7 +276,6 @@
       }).join("");
     }
 
-    // 4. رسم المنتجات من الكاش المحلي فورًا بدون انتظار
     const cachedFeatured = JSON.parse(localStorage.getItem("ws_products_filter_featured") || "[]");
     const cachedOffers = JSON.parse(localStorage.getItem("ws_products_filter_offers") || "[]");
     const cachedNew = JSON.parse(localStorage.getItem("ws_products_filter_new") || "[]");
@@ -287,10 +283,8 @@
     if (cachedOffers.length) renderGridInto("offerGrid", cachedOffers.slice(0, 8));
     if (cachedNew.length) renderGridInto("newGrid", cachedNew.slice(0, 8));
 
-    // 5. رسم سلايدر الإعلانات
     renderAdsSlider();
 
-    // 6. جلب أو تحديث البيانات في الخلفية
     const homeResults = await Promise.all([
       Store.loadProductsByField("featured", true, "featured", false),
       Store.loadProductsByField("isOffer", true, "offers", false),

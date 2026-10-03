@@ -1,7 +1,7 @@
 /* ==========================================================================
    admin.js
    منطق لوحة تحكم الأدمن بالكامل (admin.html). 
-   تم التحديث: دعم الصور المتعددة وتصحيح حفظ الألوان وحماية المخزون، ونظام الطلبات الجديد.
+   تم التحديث: دعم الصور المتعددة مع ميزة الحذف الفردي، تصحيح حفظ الألوان، ونظام الطلبات.
    ========================================================================== */
 
 let editingProductId = null;
@@ -98,9 +98,6 @@ async function uploadToImgBB(file, isBanner = false) {
     return rawUrl;
   }
 
-  // القديم:
-  // const transform = isBanner ? "tr:w-1200,q-90,f-auto" : "tr:w-800,q-85,f-auto";
-  // الجديد (توفير هائل في الحجم مع الحفاظ على النقاء التام):
   const transform = isBanner
     ? "tr:w-1200,q-90,f-auto"   // البنر يكفيه 800 بكسل بجودة 75
     : "tr:w-800,q-85,f-auto";  // صور المنتجات 450 بكسل بجودة 70 ممتازة جداً وتزن 25KB فقط
@@ -142,7 +139,7 @@ window.toggleAdminSidebar = function() {
 };
 
 /* ---------------------------------------------------------------------- */
-/* لوحة الإحصائيات                                                        */
+/* لوحة الإحصائيات                                                      */
 /* ---------------------------------------------------------------------- */
 
 function renderStats() {
@@ -162,7 +159,7 @@ function renderStats() {
 }
 
 /* ---------------------------------------------------------------------- */
-/* جدول المنتجات                                                          */
+/* جدول المنتجات                                                        */
 /* ---------------------------------------------------------------------- */
 
 function renderProductsTable() {
@@ -215,7 +212,7 @@ function deleteProductConfirm(id) {
     Store.deleteProduct(id);
     renderProductsTable();
     renderStats();
-    showToast("تم حذف المنتج");
+    showToast("تم حذف المنتج", "success");
   }
 }
 
@@ -314,10 +311,10 @@ function renderColorsList() {
         showToast("جاري رفع صورة اللون...");
         const url = await uploadToImgBB(file, false);
         pendingColors[idx].image = url;
-        showToast("تم رفع الصورة بنجاح!");
+        showToast("تم رفع الصورة بنجاح!", "success");
         renderColorsList();
       } catch (err) {
-        showToast(err.message || "فشل رفع الصورة.");
+        showToast(err.message || "فشل رفع الصورة.", "error");
       }
     });
   });
@@ -413,10 +410,10 @@ function wireProductModal() {
         const imageUrl = await uploadToImgBB(file, false);
         pendingProductImage = imageUrl;
         document.getElementById("productImagePreview").innerHTML = '<img src="' + imageUrl + '">';
-        showToast("تم رفع الصورة بنجاح!");
+        showToast("تم رفع الصورة بنجاح!", "success");
       } catch (error) {
         console.error("Upload Error:", error);
-        showToast("فشل رفع الصورة. يرجى التأكد من اتصال الإنترنت.");
+        showToast("فشل رفع الصورة. يرجى التأكد من اتصال الإنترنت.", "error");
       }
     });
   }
@@ -447,6 +444,20 @@ function wireProductModal() {
     sizesInput.addEventListener("input", renderInventoryGrid);
   }
 }
+
+// دالة حذف صورة إضافية بشكل فردي
+window.removeExtraImage = function(index) {
+    if (!confirm("هل أنت متأكد من حذف هذه الصورة؟")) return;
+    if (editingProductId) {
+        const p = Store.getProduct(editingProductId);
+        if (p && p.images) {
+            p.images.splice(index, 1);
+            Store.updateProduct(editingProductId, { images: p.images });
+            openProductModal(editingProductId); // تحديث العرض في النافذة
+            showToast("تم حذف الصورة الإضافية", "success");
+        }
+    }
+};
 
 function openProductModal(productId) {
   editingProductId = productId;
@@ -486,9 +497,14 @@ function openProductModal(productId) {
     pendingProductImage = p.image || null;
     preview.innerHTML = p.image ? '<img src="' + p.image + '">' : iconSvg("box");
     
-    // عرض الصور الإضافية إن وجدت
+    // عرض الصور الإضافية إن وجدت مع زر الحذف الفردي لكل صورة
     if (p.images && p.images.length > 0 && extraImagesPreview) {
-        extraImagesPreview.innerHTML = p.images.map(img => `<img src="${img}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #ccc;">`).join('');
+        extraImagesPreview.innerHTML = p.images.map((img, idx) => `
+            <div style="position:relative; display:inline-block; margin-left:10px; margin-bottom:10px;">
+                <img src="${img}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line-strong);">
+                <button type="button" onclick="removeExtraImage(${idx})" title="حذف الصورة" style="position:absolute; top:-6px; right:-6px; background:var(--danger); color:#fff; border:none; border-radius:50%; width:22px; height:22px; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 4px rgba(0,0,0,0.2);">×</button>
+            </div>
+        `).join('');
     }
 
     pendingColors = (p.colors || []).map(function (c) { return Object.assign({}, c); });
@@ -513,7 +529,7 @@ function closeProductModal() {
   editingProductId = null;
 }
 
-// دالة حفظ المنتج (معدلة لدعم الصور المتعددة وتصحيح حفظ الألوان)
+// دالة حفظ المنتج
 async function saveProductForm(e) {
   e.preventDefault();
 
@@ -568,7 +584,7 @@ async function saveProductForm(e) {
           const uploadedUrls = await Promise.all(uploadPromises);
           extraImagesUrls = extraImagesUrls.concat(uploadedUrls.filter(url => url !== null));
       } catch (err) {
-          showToast("حدث خطأ أثناء رفع الصور الإضافية");
+          showToast("حدث خطأ أثناء رفع الصور الإضافية", "error");
           console.error(err);
       }
   }
@@ -601,16 +617,16 @@ async function saveProductForm(e) {
   };
 
   if (!data.name || !data.categoryId) {
-    showToast("يرجى تعبئة اسم المنتج واختيار القسم");
+    showToast("يرجى تعبئة اسم المنتج واختيار القسم", "error");
     return;
   }
 
   if (editingProductId) {
     Store.updateProduct(editingProductId, data);
-    showToast("تم تحديث المنتج");
+    showToast("تم تحديث المنتج", "success");
   } else {
     Store.addProduct(data);
-    showToast("تمت إضافة المنتج");
+    showToast("تمت إضافة المنتج", "success");
   }
 
   closeProductModal();
@@ -619,7 +635,7 @@ async function saveProductForm(e) {
 }
 
 /* ---------------------------------------------------------------------- */
-/* الأقسام                                                                */
+/* الأقسام                                                              */
 /* ---------------------------------------------------------------------- */
 
 function renderCategoriesTable() {
@@ -668,7 +684,7 @@ function deleteCategoryConfirm(id) {
     renderCategoriesTable();
     populateCategorySelect();
     renderStats();
-    showToast("تم حذف القسم");
+    showToast("تم حذف القسم", "success");
   }
 }
 
@@ -712,10 +728,10 @@ function wireCategoryModal() {
         pendingCategoryImage = imageUrl;
         const preview = document.getElementById("categoryImagePreview");
         if (preview) preview.innerHTML = '<img src="' + imageUrl + '">';
-        showToast("تم الرفع بنجاح!");
+        showToast("تم الرفع بنجاح!", "success");
       } catch (error) {
         console.error("Upload Error:", error);
-        showToast("فشل رفع الصورة.");
+        showToast("فشل رفع الصورة.", "error");
       }
     });
   }
@@ -798,14 +814,14 @@ function saveCategoryForm(e) {
   const existing = editingCategoryId ? Store.getCategories().find(function (c) { return c.id === editingCategoryId; }) : null;
   const icon = iconInput ? iconInput.value : ((existing && existing.icon) || "box");
 
-  if (!name) { showToast("يرجى إدخال اسم القسم"); return; }
+  if (!name) { showToast("يرجى إدخال اسم القسم", "error"); return; }
 
   if (editingCategoryId) {
     Store.updateCategory(editingCategoryId, { name: name, image: pendingCategoryImage, icon: icon, parentId: parentId });
-    showToast("تم تحديث القسم");
+    showToast("تم تحديث القسم", "success");
   } else {
     Store.addCategory({ name: name, image: pendingCategoryImage, icon: icon, parentId: parentId });
-    showToast("تمت إضافة القسم");
+    showToast("تمت إضافة القسم", "success");
   }
 
   closeCategoryModal();
@@ -814,7 +830,7 @@ function saveCategoryForm(e) {
 }
 
 /* ---------------------------------------------------------------------- */
-/* الإعلانات                                                              */
+/* الإعلانات                                                            */
 /* ---------------------------------------------------------------------- */
 
 function renderAdsTable() {
@@ -849,7 +865,7 @@ function deleteAdConfirm(id) {
   if (confirm('هل تريد حذف هذا الإعلان؟')) {
     Store.deleteAd(id);
     renderAdsTable();
-    showToast("تم حذف الإعلان");
+    showToast("تم حذف الإعلان", "success");
   }
 }
 
@@ -874,10 +890,10 @@ function wireAdModal() {
         pendingAdImage = imageUrl;
         const preview = document.getElementById("adImagePreview");
         if (preview) preview.innerHTML = '<img src="' + imageUrl + '" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">';
-        showToast("تم رفع الإعلان بنجاح!");
+        showToast("تم رفع الإعلان بنجاح!", "success");
       } catch (error) {
         console.error("Upload Error:", error);
-        showToast("فشل رفع الصورة.");
+        showToast("فشل رفع الصورة.", "error");
       }
     });
   }
@@ -915,7 +931,7 @@ function closeAdModal() {
 function saveAdForm(e) {
   e.preventDefault();
   if (!pendingAdImage) {
-    showToast("يرجى رفع صورة للإعلان");
+    showToast("يرجى رفع صورة للإعلان", "error");
     return;
   }
   
@@ -926,7 +942,7 @@ function saveAdForm(e) {
   };
 
   Store.addAd(data);
-  showToast("تمت إضافة الإعلان بنجاح");
+  showToast("تمت إضافة الإعلان بنجاح", "success");
   closeAdModal();
   renderAdsTable();
 }
@@ -935,14 +951,12 @@ function saveAdForm(e) {
 /* سجلّ الطلبات ودالة خصم المخزون المتطورة                                 */
 /* ---------------------------------------------------------------------- */
 
-// تحديث حالة الطلب وخصم المخزون تلقائياً
 window.changeOrderStatus = async function(orderId, selectElement) {
     const newStatus = selectElement.value;
     const orders = Store.getOrders();
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
 
-    // إذا اختار "مجهز" ولم يتم خصم المخزون مسبقاً
     if (newStatus === 'prepared' && !order.stockDeducted) {
         if (confirm("هل تريد تأكيد تجهيز الطلب وخصم المنتجات من المخزون تلقائياً؟")) {
             showToast("جاري التحديث وخصم الكميات...");
@@ -966,7 +980,6 @@ window.changeOrderStatus = async function(orderId, selectElement) {
                 }
 
                 if (updated) {
-                    // إعادة حساب المخزون الكلي للمنتج لحفظه
                     let newTotalStock = Store.hasVariantMatrix(product) 
                         ? Object.values(product.inventory).reduce((sum, n) => sum + (Number(n) || 0), 0)
                         : product.stock;
@@ -981,23 +994,20 @@ window.changeOrderStatus = async function(orderId, selectElement) {
             order.stockDeducted = true;
             order.status = newStatus;
             await updateOrderInFirebase(order.id, { status: 'prepared', stockDeducted: true });
-            showToast("تم تجهيز الطلب وخصم المخزون بنجاح!");
+            showToast("تم تجهيز الطلب وخصم المخزون بنجاح!", "success");
         } else {
-            // التراجع عن التحديد في القائمة المنسدلة إذا رفض المستخدم
             selectElement.value = order.status || 'pending';
             return;
         }
     } else {
-        // تغيير حالة عادي (مثلاً إلى قيد المعالجة أو ملغي)
         order.status = newStatus;
         await updateOrderInFirebase(order.id, { status: newStatus });
-        showToast("تم تحديث حالة الطلب.");
+        showToast("تم تحديث حالة الطلب.", "success");
     }
     
     renderOrdersTable();
 };
 
-// دالة مساعدة لتحديث الطلب في السيرفر (Firebase) والمحلي
 window.updateOrderInFirebase = async function(orderId, patch) {
     const list = Store.getOrders().map(o => o.id === orderId ? Object.assign({}, o, patch) : o);
     localStorage.setItem("ws_orders", JSON.stringify(list));
@@ -1045,7 +1055,6 @@ function renderOrdersTable() {
         '</div>';
     }
 
-    // القائمة المنسدلة الجديدة للحالة
     const status = o.status || 'pending';
     const deducted = o.stockDeducted ? true : false;
     let statusHtml = `
@@ -1056,7 +1065,6 @@ function renderOrdersTable() {
       </select>
     `;
     
-    // إظهار ملاحظة في حال تم خصم المخزون مسبقاً لمنع التكرار
     if (deducted) {
         statusHtml += `<div style="font-size:0.75rem; color:var(--success); margin-top:6px; font-weight:bold;">(تم خصم المخزون)</div>`;
     }
@@ -1075,7 +1083,7 @@ function renderOrdersTable() {
 }
 
 /* ---------------------------------------------------------------------- */
-/* إعدادات المتجر                                                         */
+/* إعدادات المتجر                                                       */
 /* ---------------------------------------------------------------------- */
 
 function fillSettingsForm() {
@@ -1116,7 +1124,7 @@ function wireSettingsForm() {
     };
 
     Store.saveSettings(patch);
-    showToast("تم حفظ الإعدادات بنجاح");
+    showToast("تم حفظ الإعدادات بنجاح", "success");
   });
 }
 

@@ -1,17 +1,17 @@
 /* ==========================================================================
-   products.js (النسخة المحسنة — معرض صور، Skeleton، وزر تحميل المزيد)
+   products.js (النسخة المحسنة — الجودة الذكية باستخدام getIkUrl)
    ========================================================================== */
 
 function productMediaHtml(product) {
   if (product.image) {
-    return '<img src="' + escapeHtml(product.image) + '" alt="' + escapeHtml(product.name || "") + '" class="product-media-img" loading="lazy" decoding="async">';
+    // بالخارج: نطلب 400px لتوفير الباقة وسرعة التحميل
+    return '<img src="' + escapeHtml(window.getIkUrl(product.image, 400, 80)) + '" alt="' + escapeHtml(product.name || "") + '" class="product-media-img" loading="lazy" decoding="async">';
   }
   const cat = Store.getCategories().find(function (c) { return c.id === product.categoryId; });
   const key = cat ? cat.icon : "box";
   return '<div class="placeholder-icon">' + iconSvg(key) + "</div>";
 }
 
-// رسم البطاقات الوهمية أثناء التحميل
 function renderSkeletonCards(count) {
   let html = '';
   for (let i = 0; i < count; i++) {
@@ -190,7 +190,6 @@ function initShopPage() {
     shopState.pagination.products = localProducts.slice(0, SHOP_PAGE_SIZE);
     renderGridInto("shopGrid", shopState.pagination.products);
   } else {
-      // إظهار البطاقات الوهمية أثناء التحميل الأولي
       grid.innerHTML = renderSkeletonCards(8);
   }
 
@@ -202,7 +201,7 @@ window.updateCategory = function(catId) {
     const grid = document.getElementById("shopGrid");
     if (grid) {
         grid.classList.add("is-updating");
-        grid.innerHTML = renderSkeletonCards(4); // تأثير التحميل
+        grid.innerHTML = renderSkeletonCards(4);
     }
 
     shopState.categoryId = catId;
@@ -494,7 +493,6 @@ async function initProductDetailPage() {
   const hasLegacyVariants = !hasMatrix && product.variants && product.variants.length > 0;
   const productAvailable = !!product.available;
 
-  // تجهيز معرض الصور الإضافية (Product Gallery)
   let galleryHtml = "";
   let thumbnailsHtml = "";
   const allImages = [];
@@ -507,14 +505,15 @@ async function initProductDetailPage() {
   }
 
   if (allImages.length > 0) {
-    galleryHtml = '<div class="detail-gallery"><img id="mainProductDetailImage" src="' + escapeHtml(allImages[0]) + '" alt="' + escapeHtml(product.name) + '" class="detail-gallery-img"></div>';
+    // الداخل: نطلب 1000px لضمان دقة فائقة خالية من البكسلة
+    galleryHtml = '<div class="detail-gallery"><img id="mainProductDetailImage" src="' + escapeHtml(window.getIkUrl(allImages[0], 1000, 95)) + '" alt="' + escapeHtml(product.name) + '" class="detail-gallery-img"></div>';
     
-    // إضافة المصغرات إذا كان هناك أكثر من صورة
     if (allImages.length > 1) {
         thumbnailsHtml = '<div class="gallery-thumbnails">';
         allImages.forEach((img, index) => {
             const activeClass = index === 0 ? "active" : "";
-            thumbnailsHtml += `<img src="${escapeHtml(img)}" class="gallery-thumb ${activeClass}" data-src="${escapeHtml(img)}" alt="صورة ${index + 1}">`;
+            // المصغرات: نطلب 150px فقط
+            thumbnailsHtml += `<img src="${escapeHtml(window.getIkUrl(img, 150, 70))}" class="gallery-thumb ${activeClass}" data-src="${escapeHtml(window.getIkUrl(img, 1000, 95))}" alt="صورة ${index + 1}">`;
         });
         thumbnailsHtml += '</div>';
     }
@@ -609,7 +608,6 @@ async function initProductDetailPage() {
       "</div>" +
     "</div>";
 
-  // تفعيل التبديل بين صور المصغرات (Gallery)
   const thumbs = document.querySelectorAll(".gallery-thumb");
   const mainImage = document.getElementById("mainProductDetailImage");
   if (thumbs.length > 0 && mainImage) {
@@ -689,11 +687,9 @@ async function initProductDetailPage() {
         const label = document.getElementById("selectedColorLabel");
         if (label) label.textContent = selectedColor;
         
-        // تغيير الصورة إذا كان اللون يحتوي على صورة مخصصة
         const colorObj = product.colors.find(function (c) { return c.name === selectedColor; });
         if (mainImage && colorObj && colorObj.image) {
-            mainImage.src = escapeHtml(colorObj.image);
-            // إزالة التحديد عن المصغرات لأن المستخدم اختار من الألوان
+            mainImage.src = escapeHtml(window.getIkUrl(colorObj.image, 1000, 95));
             thumbs.forEach(t => t.classList.remove("active"));
         }
         
@@ -742,7 +738,7 @@ async function initProductDetailPage() {
         li.style.fontWeight = "700";
         
         if (mainImage && product.variantImages && product.variantImages[selectedVariant]) {
-            mainImage.src = escapeHtml(product.variantImages[selectedVariant]);
+            mainImage.src = escapeHtml(window.getIkUrl(product.variantImages[selectedVariant], 1000, 95));
             thumbs.forEach(t => t.classList.remove("active"));
         }
       });

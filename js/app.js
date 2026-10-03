@@ -1,7 +1,7 @@
 /* ==========================================================================
    app.js
    منطق مشترك بين كل صفحات المتجر: رسم الهيدر والفوتر ديناميكيًا من الإعدادات
-   المخزّنة، القائمة على الجوال، عداد السلة، ورسائل التوست.
+   المخزّنة، القائمة على الجوال، عداد السلة، ورسائل التوست، وزر الصعود للأعلى.
    ========================================================================== */
 
 /* ---------- أدوات التهريب المشتركة (متاحة لكل الصفحات) ---------- */
@@ -17,7 +17,6 @@ function escapeHtml(str) {
 }
 
 // تحويل قيمة إلى وسيط نصي آمن داخل onclick="fn(...)": يعالج علامات الاقتباس والأحرف الخاصة
-// مثال: '<button onclick="removeCartLine(' + jsStr(key) + ')">'
 function jsStr(value) {
   return escapeHtml(JSON.stringify(String(value === null || value === undefined ? "" : value)));
 }
@@ -25,13 +24,12 @@ function jsStr(value) {
 const NAV_LINKS = [
   { href: "index.html", label: "الرئيسية", key: "home", icon: "home" },
   { href: "products.html", label: "المنتجات", key: "products", icon: "box" },
-  { href: "categories.html", label: "الأقسام", key: "categories", icon: "layers" }, // صفحة الأقسام المستقلة
+  { href: "categories.html", label: "الأقسام", key: "categories", icon: "layers" }, 
   { href: "about.html", label: "من نحن", key: "about", icon: "info" },
   { href: "contact.html", label: "تواصل معنا", key: "contact", icon: "phone" }
 ];
 
 function initSidebarDOM() {
-  // إنشاء الخلفية الشفافة والقائمة الجانبية مباشرة في الـ body لتجنب مشاكل الطبقات (z-index)
   if (!document.getElementById("mainSidebarOverlay")) {
       const overlay = document.createElement("div");
       overlay.id = "mainSidebarOverlay";
@@ -117,7 +115,6 @@ function renderSidebarNav(activeKey) {
   const allCategories = Store.getCategories();
   const mainCategories = allCategories.filter(c => !c.parentId);
 
-  // التحقق إن كان المستخدم حالياً داخل صفحة المتجر products.html
   const isShopPage = window.location.pathname.endsWith("products.html");
 
   if (mainCategories.length > 0) {
@@ -305,18 +302,51 @@ function updateCartBadge() {
   el.style.display = count > 0 ? "flex" : "none";
 }
 
-function showToast(message) {
+// دالة الإشعارات المحسنة (تدعم الألوان حسب النوع)
+function showToast(message, type = 'success') {
   let toast = document.getElementById("appToast");
   if (!toast) {
     toast = document.createElement("div");
     toast.id = "appToast";
-    toast.className = "toast";
     document.body.appendChild(toast);
   }
+  
   toast.textContent = message;
-  toast.classList.add("show");
+  toast.className = "toast show"; // إعادة تعيين الأصناف
+  
+  if (type === 'success') {
+      toast.classList.add("toast-success");
+  } else if (type === 'error') {
+      toast.classList.add("toast-error");
+  }
+
   clearTimeout(toast._timer);
   toast._timer = setTimeout(function () { toast.classList.remove("show"); }, 2400);
+}
+
+// إنشاء وبرمجة زر الصعود للأعلى
+function initBackToTop() {
+  let btn = document.getElementById("backToTopBtn");
+  if (!btn) {
+    btn = document.createElement("button");
+    btn.id = "backToTopBtn";
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;display:block;margin:auto;"><polyline points="18 15 12 9 6 15"></polyline></svg>';
+    btn.setAttribute("aria-label", "العودة للأعلى");
+    btn.title = "العودة للأعلى";
+    document.body.appendChild(btn);
+  }
+  
+  window.addEventListener("scroll", function() {
+    if (window.scrollY > 400) {
+      btn.style.display = "block";
+    } else {
+      btn.style.display = "none";
+    }
+  });
+
+  btn.addEventListener("click", function() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
 }
 
 function fixRelativePaths(scope) { /* no-op: flat file structure */ }
@@ -325,6 +355,7 @@ document.addEventListener("DOMContentLoaded", function () {
   renderHeader();
   renderFooter();
   updateCartBadge();
+  initBackToTop(); // تفعيل زر الصعود
 });
 document.addEventListener("cart:updated", updateCartBadge);
 document.addEventListener("store:synced", function () {

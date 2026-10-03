@@ -22,6 +22,12 @@ function jsStr(value) {
 // هذه الدالة تتدخل في الرابط وتطلب المقاس المطلوب بدقة، مما يوفر الباقة ويزيد الجودة!
 window.getIkUrl = function(url, width, quality) {
   if (!url || typeof url !== 'string' || !url.includes("ik.imagekit.io")) return url;
+  // وضع بدون ImageKit (imageKitEndpoint فارغ في config.js): نرجع رابط ImgBB الأصلي فلا تُستهلك باقة ImageKit
+  const ikOn = !!(((typeof STORE_CONFIG !== 'undefined' && STORE_CONFIG.imageKitEndpoint) || "").trim());
+  if (!ikOn) {
+    const m = url.match(/^https?:\/\/ik\.imagekit\.io\/[^\/]+\/(?:tr:[^\/]+\/)?(.+)$/);
+    return m ? "https://i.ibb.co/" + m[1] : url;
+  }
   quality = quality || 85;
   const trString = "tr:w-" + width + ",q-" + quality + ",f-auto";
   if (url.match(/\/tr:[^\/]+\//)) {
@@ -78,7 +84,7 @@ function renderHeader() {
     '<header class="site-header">' +
       '<div class="container header-inner">' +
         '<a href="index.html" class="brand" aria-label="' + safeName + '">' +
-          '<img src="assets/logo/logo.png" alt="' + safeName + '">' +
+          '<img src="assets/logo/logo.png" alt="' + safeName + '" width="48" height="48">' +
           '<span class="brand-name">' + safeName + '<span>' + safeTagline + '</span></span>' +
         '</a>' +
         '<nav class="main-nav" id="mainNav" aria-label="التنقل الرئيسي">' + navHtml + '</nav>' +

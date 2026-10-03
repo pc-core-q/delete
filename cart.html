@@ -4,9 +4,25 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>السلة | متجرك الإلكتروني</title>
+  <!-- تبدأ لقطة بيانات المتجر بالتحميل فور فتح الصفحة (قبل CSS وبقية السكربتات) -->
+  <script>
+    (function () {
+      try {
+        if (location.protocol.indexOf("http") === 0 && !localStorage.getItem("ws_snapshot_time")) {
+          window.__bootstrap = fetch("/api/bootstrap").then(function (r) { if (!r.ok) throw 0; return r.json(); }).catch(function () { return null; });
+        }
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="preconnect" href="https://i.ibb.co">
+  <!-- خطوط Google: اتصال مسبق + تحميل غير حاجب للعرض (النص يظهر فوراً بخط بديل ثم يتبدل) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"></noscript>
   <link rel="icon" href="assets/logo/logo.png">
-  <link rel="stylesheet" href="css/style.css?v=44">
-  <link rel="stylesheet" href="css/refresh.css?v=44">
+  <link rel="stylesheet" href="css/style.css?v=45">
+  <link rel="stylesheet" href="css/refresh.css?v=45">
   <style>
     /* تنسيق شريط التمرير للسلة (Mini Cart Slider) */
     .cart-items-wrapper {
@@ -75,14 +91,12 @@
 
 <div id="site-footer"></div>
 
-<script src="js/config.js?v=44"></script>
-<script src="js/icons.js?v=44"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="js/store.js?v=44"></script>
-<script src="js/whatsapp.js?v=44"></script>
-<script src="js/app.js?v=44"></script>
-<script src="js/cart.js?v=44"></script>
+<script src="js/config.js?v=45"></script>
+<script src="js/icons.js?v=45"></script>
+<script src="js/store.js?v=45"></script>
+<script src="js/whatsapp.js?v=45"></script>
+<script src="js/app.js?v=45"></script>
+<script src="js/cart.js?v=45"></script>
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     var btn = document.getElementById("checkoutBtn");

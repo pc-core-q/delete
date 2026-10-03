@@ -467,7 +467,7 @@ async function initHomeCollections() {
     const categories = Store.getCategories();
     const mainCategories = categories.filter(function(c) { return !c.parentId; });
     catEl.innerHTML = mainCategories.map(function (c) {
-      const media = c.image ? '<img src="' + escapeHtml(c.image) + '" alt="' + escapeHtml(c.name) + '" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">' : iconSvg(c.icon || "box");
+      const media = c.image ? '<img src="' + escapeHtml(window.getIkUrl(c.image, 200, 80)) + '" alt="' + escapeHtml(c.name) + '" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">' : iconSvg(c.icon || "box");
       return '<a href="products.html?cat=' + encodeURIComponent(c.id) + '" class="cat-chip"><span class="cat-icon" style="padding:0;overflow:hidden;display:flex;align-items:center;justify-content:center;">' + media + '</span><span class="name">' + escapeHtml(c.name) + "</span></a>";
     }).join("");
   }

@@ -8,9 +8,13 @@
 /* يُفعَّل فقط إذا كان STORE_CONFIG.firebaseDatabaseURL معبّأً في config.js */
 /* ---------------------------------------------------------------------- */
 
-let firebaseEnabled = false;
+let firebaseEnabled = false;   // مكتبة Firebase SDK محمّلة (لوحة التحكم وصفحة الدخول فقط)
 let database = null;
 let firebaseAuth = null;
+
+// رابط قاعدة البيانات مُعدّ؟ (الصفحات العامة تقرأ عبر لقطة /api/bootstrap بدون SDK)
+const REMOTE_DB_URL = ((typeof STORE_CONFIG !== "undefined" && STORE_CONFIG.firebaseDatabaseURL) || "").trim().replace(/\/+$/, "");
+const remoteEnabled = !!REMOTE_DB_URL;
 
 (function initFirebaseIfConfigured() {
   const url = (typeof STORE_CONFIG !== "undefined" && STORE_CONFIG.firebaseDatabaseURL || "").trim();
@@ -88,7 +92,7 @@ function firebaseValueToArray(value) {
   return Object.keys(value).map(function (key) { return value[key]; }).filter(Boolean);
 }
 
-async function pullFromFirebase() {
+async function pullFromFirebaseSDK() {
   if (!firebaseEnabled) return;
   try {
     const lastSync = localStorage.getItem("last_meta_pull_time");
@@ -264,7 +268,94 @@ async function fetchAllProductsFromFirebase() {
   }
 }
 
-pullFromFirebase();
+/* ---------------------------------------------------------------------- */
+/* الصفحات العامة: لقطة بيانات واحدة سريعة بدل Firebase SDK                */
+/* 1) /api/bootstrap (كاش CDN)  2) احتياطي: REST مباشر  3) localStorage    */
+/* ---------------------------------------------------------------------- */
+
+let snapshotPromise = null;
+
+function fetchJsonWithTimeout(url, ms) {
+  const controller = (typeof AbortController !== "undefined") ? new AbortController() : null;
+  const timer = controller ? setTimeout(function () { controller.abort(); }, ms) : null;
+  return fetch(url, controller ? { signal: controller.signal } : undefined)
+    .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+    .finally(function () { if (timer) clearTimeout(timer); });
+}
+
+async function fetchSnapshotRaw() {
+  // (أ) اللقطة المبدوءة مبكراً من <head> أو الطلب الآن
+  if (location.protocol.indexOf("http") === 0) {
+    try {
+      const early = window.__bootstrap ? await window.__bootstrap : null;
+      const snap = early || await fetchJsonWithTimeout("/api/bootstrap", 8000);
+      if (snap && typeof snap === "object" && "products" in snap) return snap;
+    } catch (e) { /* ننتقل للاحتياطي */ }
+  }
+  // (ب) احتياطي: REST مباشر من Firebase (لا SDK) — يعمل أيضاً على استضافات بدون /api
+  try {
+    const nodes = ["ws_categories", "ws_settings", "ws_ads", "ws_products"];
+    const v = await Promise.all(nodes.map(function (n) { return fetchJsonWithTimeout(REMOTE_DB_URL + "/" + n + ".json", 10000); }));
+    return { generatedAt: Date.now(), categories: v[0], settings: v[1], ads: v[2], products: v[3] };
+  } catch (e) {
+    console.error("Snapshot fetch failed:", e);
+    return null;
+  }
+}
+
+function setLocalIfChanged(key, valueObj) {
+  const next = JSON.stringify(valueObj);
+  let prev = null;
+  try { prev = localStorage.getItem(key); } catch (e) {}
+  if (prev === next) return false;
+  try { localStorage.setItem(key, next); } catch (e) { return false; }
+  return true;
+}
+
+function applySnapshot(snap) {
+  let changed = false;
+  changed = setLocalIfChanged(DB_KEYS.categories, firebaseValueToArray(snap.categories)) || changed;
+  changed = setLocalIfChanged(DB_KEYS.ads, firebaseValueToArray(snap.ads)) || changed;
+  changed = setLocalIfChanged(DB_KEYS.products, firebaseValueToArray(snap.products)) || changed;
+  if (snap.settings && typeof snap.settings === "object") {
+    changed = setLocalIfChanged(DB_KEYS.settings, snap.settings) || changed;
+  }
+  // كاشات المنتجات القديمة (حسب الحقل/القسم) لم تعد لازمة: المصدر هو ws_products الكامل
+  for (let i = localStorage.length - 1; i >= 0; i--) {
+    const k = localStorage.key(i);
+    if (k && k.indexOf("ws_products_") === 0) localStorage.removeItem(k);
+  }
+  localStorage.setItem("ws_snapshot_time", String(Date.now()));
+  return changed;
+}
+
+function notifySynced() {
+  const fire = function () { document.dispatchEvent(new CustomEvent("store:synced")); };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", fire, { once: true });
+  else fire();
+}
+
+function loadSnapshot() {
+  if (!snapshotPromise) {
+    snapshotPromise = fetchSnapshotRaw().then(function (snap) {
+      if (!snap) return false;
+      const changed = applySnapshot(snap);
+      if (changed) notifySynced();
+      return true;
+    }).catch(function (e) { console.error(e); return false; });
+  }
+  return snapshotPromise;
+}
+
+// storeReady: زائر جديد ينتظر اللقطة (طلب واحد سريع)، وزائر عائد يرى بياناته فوراً والتحديث يتم بالخلفية
+let storeReady = Promise.resolve();
+function initRemoteData() {
+  if (!remoteEnabled) return;
+  if (firebaseEnabled) { pullFromFirebaseSDK(); return; }   // لوحة التحكم/الدخول: السلوك القديم مباشرة من Firebase
+  const hasLocal = !!localStorage.getItem("ws_snapshot_time");
+  const p = loadSnapshot();
+  storeReady = hasLocal ? Promise.resolve() : p;
+}
 
 /* ---------------------------------------------------------------------- */
 /* التهيئة وإدارة إصدار البيانات                                          */
@@ -280,7 +371,8 @@ function seedIfNeeded() {
       DB_KEYS.products,
       DB_KEYS.ads,
       "last_meta_pull_time",
-      "ws_products_all_time"
+      "ws_products_all_time",
+      "ws_snapshot_time"
     ];
     
     for (let i = localStorage.length - 1; i >= 0; i--) {
@@ -320,6 +412,7 @@ function seedIfNeeded() {
   localStorage.setItem(DB_KEYS.seeded, "1");
 }
 seedIfNeeded();
+initRemoteData();
 
 /* ---------------------------------------------------------------------- */
 /* أدوات المتغيرات (الألوان/المقاسات/المخزون)                              */
@@ -373,6 +466,11 @@ const Store = {
   getProduct(id) { return this.getProducts().find(p => p.id === id) || null; },
 
   async loadProductsByField(field, value, cacheName, forceRefresh) {
+    // الصفحات العامة (بدون SDK): المصدر هو لقطة ws_products الكاملة
+    if (!firebaseEnabled) {
+      await storeReady;
+      return this.getProducts().filter(function(p) { return p[field] === value; });
+    }
     const cacheKey = "ws_products_filter_" + cacheName;
     const cacheTimeKey = cacheKey + "_time";
     const now = Date.now();
@@ -381,13 +479,9 @@ const Store = {
     const cooldownMs = 15 * 60 * 1000; // كاش 15 دقيقة
 
     if (!forceRefresh && cached && cached.length > 0) {
-      if (now - cachedAt < cooldownMs || !firebaseEnabled) {
+      if (now - cachedAt < cooldownMs) {
         return cached;
       }
-    }
-
-    if (!firebaseEnabled) {
-      return this.getProducts().filter(function(p) { return p[field] === value; });
     }
 
     const products = await fetchProductsByFieldFromFirebase(field, value);
@@ -404,6 +498,7 @@ const Store = {
     pageSize = Number(pageSize) || 20;
     if (!categoryId || categoryId === "all") return { products: [], nextCursor: null, done: true };
     if (!firebaseEnabled) {
+      await storeReady;
       const all = this.getProducts().filter(function(p) { return p.categoryId === categoryId; });
       const start = cursorKey ? Math.max(0, all.findIndex(function(p) { return p.id === cursorKey; }) + 1) : 0;
       const products = all.slice(start, start + pageSize);
@@ -418,6 +513,7 @@ const Store = {
   async loadProductsPageByField(field, value, pageSize, cursorKey) {
     pageSize = Number(pageSize) || 20;
     if (!firebaseEnabled) {
+      await storeReady;
       const all = this.getProducts().filter(function(p) { return p[field] === value; });
       const start = cursorKey ? Math.max(0, all.findIndex(function(p) { return p.id === cursorKey; }) + 1) : 0;
       const products = all.slice(start, start + pageSize);
@@ -432,6 +528,7 @@ const Store = {
   async loadProductsPage(pageSize, cursorKey) {
     pageSize = Number(pageSize) || 20;
     if (!firebaseEnabled) {
+      await storeReady;
       const all = this.getProducts();
       const start = cursorKey ? Math.max(0, all.findIndex(function(p) { return p.id === cursorKey; }) + 1) : 0;
       const products = all.slice(start, start + pageSize);
@@ -453,6 +550,11 @@ const Store = {
   },
 
   async loadProductsByCategory(categoryId, forceRefresh) {
+    if (!firebaseEnabled) {
+      await storeReady;
+      if (!categoryId || categoryId === "all") return this.getProducts();
+      return this.getProducts().filter(function(p) { return p.categoryId === categoryId; });
+    }
     if (!categoryId || categoryId === "all") return this.getProducts();
     const cacheKey = "ws_products_category_" + categoryId;
     const cacheTimeKey = cacheKey + "_time";
@@ -462,14 +564,11 @@ const Store = {
     const cooldownMs = 15 * 60 * 1000; // كاش 15 دقيقة
 
     if (!forceRefresh && cached && cached.length > 0) {
-      if (now - cachedAt < cooldownMs || !firebaseEnabled) {
+      if (now - cachedAt < cooldownMs) {
         return cached;
       }
     }
 
-    if (!firebaseEnabled) {
-      return this.getProducts().filter(function(p) { return p.categoryId === categoryId; });
-    }
     const products = await fetchProductsByFieldFromFirebase("categoryId", categoryId);
     if (products && products.length > 0) {
       localStorage.setItem(cacheKey, JSON.stringify(products));
@@ -481,6 +580,10 @@ const Store = {
   },
 
   async loadProductById(id, forceRefresh) {
+    if (!firebaseEnabled) {
+      await storeReady;
+      return this.getProduct(id);
+    }
     const local = this.getProduct(id);
     if (local && !forceRefresh) return local;
     const fetched = await fetchProductByIdFromFirebase(id);
@@ -492,7 +595,7 @@ const Store = {
   },
 
   async loadAllProductsFromFirebase(forceRefresh) {
-    if (!firebaseEnabled) return this.getProducts();
+    if (!firebaseEnabled) { await storeReady; return this.getProducts(); }
     const cachedAt = Number(localStorage.getItem("ws_products_all_time") || 0);
     const cached = this.getProducts();
     const cooldownMs = 15 * 60 * 1000; // كاش 15 دقيقة
@@ -639,6 +742,18 @@ const Store = {
       database.ref(DB_KEYS.orders).push(newOrder).catch(error => {
         console.error("Firebase Log Order Error:", error);
       });
+    } else if (remoteEnabled) {
+      // الصفحات العامة بلا SDK: إضافة الطلب عبر REST (POST = push). keepalive ليكتمل الطلب حتى لو انتقل الزائر لواتساب
+      try {
+        fetch(REMOTE_DB_URL + "/" + DB_KEYS.orders + ".json", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(newOrder),
+          keepalive: true
+        }).then(function (r) {
+          if (!r.ok) console.error("Log order HTTP " + r.status);
+        }).catch(function (error) { console.error("Log order error:", error); });
+      } catch (error) { console.error("Log order error:", error); }
     }
   },
 

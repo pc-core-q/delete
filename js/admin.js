@@ -64,14 +64,58 @@ async function initAdminPage() {
 /* رفع الصور ومعالجتها الذكية بدقة عالية عبر ImageKit CDN                 */
 /* ---------------------------------------------------------------------- */
 
+// تصغير الصورة وتحويلها إلى WebP داخل المتصفح قبل الرفع (بدون أي خدمة خارجية)
+async function optimizeImageForUpload(file, maxDim) {
+  try {
+    if (!file || !/^image\/(jpeg|png|webp)$/i.test(file.type || "")) return file; // gif/svg وغيرها كما هي
+    let source, srcW, srcH, revoke = null;
+    try {
+      source = await createImageBitmap(file, { imageOrientation: "from-image" });
+      srcW = source.width; srcH = source.height;
+    } catch (e) {
+      const url = URL.createObjectURL(file);
+      revoke = url;
+      source = await new Promise(function (resolve, reject) {
+        const img = new Image();
+        img.onload = function () { resolve(img); };
+        img.onerror = reject;
+        img.src = url;
+      });
+      srcW = source.naturalWidth; srcH = source.naturalHeight;
+    }
+    const scale = Math.min(1, maxDim / Math.max(srcW, srcH));
+    const w = Math.max(1, Math.round(srcW * scale));
+    const h = Math.max(1, Math.round(srcH * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(source, 0, 0, w, h);
+    if (revoke) URL.revokeObjectURL(revoke);
+    let blob = await new Promise(function (r) { canvas.toBlob(r, "image/webp", 0.8); });
+    if (!blob || blob.type !== "image/webp") {
+      // متصفح لا يدعم ترميز WebP: JPEG بخلفية بيضاء
+      ctx.globalCompositeOperation = "destination-over";
+      ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, w, h);
+      blob = await new Promise(function (r) { canvas.toBlob(r, "image/jpeg", 0.82); });
+    }
+    if (!blob || blob.size >= file.size) return file;
+    const ext = blob.type === "image/webp" ? ".webp" : ".jpg";
+    return new File([blob], (file.name || "image").replace(/\.[^.]+$/, "") + ext, { type: blob.type });
+  } catch (e) {
+    console.warn("Image optimize failed, uploading original:", e);
+    return file;
+  }
+}
+
 async function uploadToImgBB(file, isBanner = false) {
   const apiKey = (typeof STORE_CONFIG !== "undefined" && STORE_CONFIG.imgbbApiKey || "").trim();
   if (!apiKey) {
     throw new Error("لم يتم إعداد مفتاح ImgBB بعد. أضِف imgbbApiKey في js/config.js لتفعيل رفع الصور.");
   }
 
+  const optimized = await optimizeImageForUpload(file, isBanner ? 1400 : 900);
   const formData = new FormData();
-  formData.append("image", file);
+  formData.append("image", optimized);
 
   // 1. الرفع الفعلي لـ ImgBB
   const response = await fetch("https://api.imgbb.com/1/upload?key=" + encodeURIComponent(apiKey), {

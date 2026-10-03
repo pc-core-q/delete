@@ -42,5 +42,8 @@ const STORE_CONFIG = {
   imgbbApiKey: "820a1a52d1b835874a9200fe7d3bb6b3",
 
   // === ImageKit (تحسين وضغط الصور عبر CDN) ===
-  imageKitEndpoint: ""   // فارغ = بدون ImageKit (لا استهلاك لباقته). ضع رابط الـendpoint لإعادة تفعيله
+  // فارغ = الصور الجديدة تُرفع مصغّرة إلى ImgBB وتُعرض مباشرة (بدون استهلاك ImageKit)
+  imageKitEndpoint: "",
+  // true = الصور القديمة (روابط ik.imagekit.io) تبقى تُخدم عبر ImageKit حتى تُعاد رفعها. اجعلها false بعد ذلك.
+  keepLegacyImageKit: true
 };

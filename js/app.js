@@ -22,8 +22,10 @@ function jsStr(value) {
 // هذه الدالة تتدخل في الرابط وتطلب المقاس المطلوب بدقة، مما يوفر الباقة ويزيد الجودة!
 window.getIkUrl = function(url, width, quality) {
   if (!url || typeof url !== 'string' || !url.includes("ik.imagekit.io")) return url;
-  // وضع بدون ImageKit (imageKitEndpoint فارغ في config.js): نرجع رابط ImgBB الأصلي فلا تُستهلك باقة ImageKit
-  const ikOn = !!(((typeof STORE_CONFIG !== 'undefined' && STORE_CONFIG.imageKitEndpoint) || "").trim());
+  // الصور القديمة المخزّنة كروابط ImageKit تبقى تُخدم عبره (keepLegacyImageKit) لأنها رُفعت أصلية كبيرة.
+  // اجعلها false بعد إعادة رفع الصور القديمة، فتُعرض روابط ImgBB مباشرة دون استهلاك ImageKit.
+  const cfg = (typeof STORE_CONFIG !== 'undefined') ? STORE_CONFIG : {};
+  const ikOn = !!((cfg.imageKitEndpoint || "").trim()) || cfg.keepLegacyImageKit === true;
   if (!ikOn) {
     const m = url.match(/^https?:\/\/ik\.imagekit\.io\/[^\/]+\/(?:tr:[^\/]+\/)?(.+)$/);
     return m ? "https://i.ibb.co/" + m[1] : url;

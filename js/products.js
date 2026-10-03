@@ -1,6 +1,15 @@
 /* ==========================================================================
-   products.js (النسخة المحسنة — ألوان متباعدة بوضوح تحت الصورة)
+   products.js (النسخة المحدثة — تصحيح أبعاد وتفاصيل الصور والبطاقات)
    ========================================================================== */
+
+function getHighResImageUrl(url) {
+  if (!url) return "";
+  // إذا كان الرابط يمر عبر ImageKit وفيه تحجيم صغير، نرفعه لدقة عرض فائقة الوضوح
+  if (url.includes("tr:")) {
+    return url.replace(/tr:[^/]+/, "tr:w-1400,q-90,f-auto");
+  }
+  return url;
+}
 
 function productMediaHtml(product) {
   if (product.image) {
@@ -461,36 +470,37 @@ async function initProductDetailPage() {
   const hasLegacyVariants = !hasMatrix && product.variants && product.variants.length > 0;
   const productAvailable = !!product.available;
 
-  // صورة واحدة مباشرة
+  // صورة التفاصيل بجودة عالية واضحة
   let galleryHtml = "";
   if (product.image) {
-    galleryHtml = '<div class="detail-gallery"><img id="mainProductDetailImage" src="' + escapeHtml(product.image) + '" alt="' + escapeHtml(product.name) + '" class="detail-gallery-img"></div>';
+    const highResUrl = getHighResImageUrl(product.image);
+    galleryHtml = '<img id="mainProductDetailImage" src="' + escapeHtml(highResUrl) + '" alt="' + escapeHtml(product.name) + '" class="detail-gallery-img">';
   } else {
     const cat = Store.getCategories().find(function (c) { return c.id === product.categoryId; });
     const key = cat ? cat.icon : "box";
     galleryHtml = '<div class="placeholder-icon" style="height: 100%; display: flex; align-items: center; justify-content: center; background: var(--olive-50); border-radius: 16px;">' + iconSvg(key) + "</div>";
   }
 
-  // قسم اختيار الألوان يوضع تحت الصورة بمسافات وهوامش واضحة ومتباعدة
+  // قسم اختيار الألوان يوضع أسفل حاوية الصورة
   let colorsHtml = "";
   if (hasColors) {
     colorsHtml =
-      '<div class="detail-media-colors" style="margin-top:24px; padding:4px 0;">' +
-        '<div class="color-head" style="margin-bottom:12px; font-size:.95rem;">' +
+      '<div class="detail-media-colors" style="margin-top:20px; padding:4px 0;">' +
+        '<div class="color-head" style="margin-bottom:10px; font-size:.92rem;">' +
           '<span class="color-label" style="color:var(--ink-500);">اللون:</span> ' +
           '<strong id="selectedColorLabel" class="color-name" style="color:var(--olive-900); font-weight:700;">' + escapeHtml(product.colors[0] ? product.colors[0].name : "") + '</strong>' +
         '</div>' +
-        '<div id="colorSwatches" class="color-swatches-wrap" style="display:flex; flex-wrap:wrap; gap:16px; align-items:center;">' +
+        '<div id="colorSwatches" class="color-swatches-wrap" style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">' +
           product.colors.map(function (c, i) {
             const bg = c.hex || "#ccc";
             return '<button type="button" class="color-swatch' + (i === 0 ? " is-selected" : "") + '" data-color="' + escapeHtml(c.name) + '" title="' + escapeHtml(c.name) + '" ' +
-              'style="background:' + escapeHtml(bg) + '; width:42px; height:42px; border-radius:50%; border:2px solid #fff; padding:0; cursor:pointer; flex-shrink:0;"></button>';
+              'style="background:' + escapeHtml(bg) + '; width:38px; height:38px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 0 1px var(--line-strong); padding:0; cursor:pointer; flex-shrink:0;"></button>';
           }).join('') +
         '</div>' +
       '</div>';
   }
 
-  // قسم المقاسات (يبقى في تفاصيل المنتج بالأسفل)
+  // قسم المقاسات
   let sizesHtml = "";
   if (hasSizes) {
     sizesHtml =
@@ -528,10 +538,13 @@ async function initProductDetailPage() {
     : Store.getTotalStock(product);
   const initiallyOutOfStock = !productAvailable || initialStock <= 0;
 
+  // هيكل الصفحة: حاوية الصورة منفصلة ومحددة، وحاوية الألوان تليها تحتيها
   mount.innerHTML =
     '<div class="detail-grid">' +
-      '<div class="detail-media">' +
-        galleryHtml +
+      '<div class="detail-gallery-wrap">' +
+        '<div class="detail-media">' +
+          galleryHtml +
+        '</div>' +
         colorsHtml +
       '</div>' +
       '<div class="detail-info">' +
@@ -627,7 +640,8 @@ async function initProductDetailPage() {
         
         const mainImage = document.getElementById("mainProductDetailImage");
         if (mainImage) {
-            mainImage.src = (colorObj && colorObj.image) ? escapeHtml(colorObj.image) : escapeHtml(product.image);
+            const newSrc = (colorObj && colorObj.image) ? colorObj.image : product.image;
+            mainImage.src = escapeHtml(getHighResImageUrl(newSrc));
         }
         
         refreshAvailabilityUI();
@@ -676,7 +690,8 @@ async function initProductDetailPage() {
         
         const mainImage = document.getElementById("mainProductDetailImage");
         if (mainImage) {
-            mainImage.src = (product.variantImages && product.variantImages[selectedVariant]) ? escapeHtml(product.variantImages[selectedVariant]) : escapeHtml(product.image);
+            const newSrc = (product.variantImages && product.variantImages[selectedVariant]) ? product.variantImages[selectedVariant] : product.image;
+            mainImage.src = escapeHtml(getHighResImageUrl(newSrc));
         }
       });
     });

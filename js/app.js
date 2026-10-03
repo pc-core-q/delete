@@ -1,11 +1,9 @@
 /* ==========================================================================
    app.js
-   منطق مشترك بين كل صفحات المتجر: رسم الهيدر والفوتر ديناميكيًا من الإعدادات
-   المخزّنة، القائمة على الجوال، عداد السلة، ورسائل التوست، وزر الصعود للأعلى.
+   منطق مشترك بين كل صفحات المتجر: رسم الهيدر والفوتر، القائمة، الإشعارات.
    ========================================================================== */
 
 /* ---------- أدوات التهريب المشتركة (متاحة لكل الصفحات) ---------- */
-// تهريب نص قبل إدخاله في innerHTML (محتوى نصي أو قيمة سمة داخل علامات اقتباس)
 function escapeHtml(str) {
   if (str === null || str === undefined) return "";
   return String(str)
@@ -16,10 +14,23 @@ function escapeHtml(str) {
     .replace(/'/g, "&#039;");
 }
 
-// تحويل قيمة إلى وسيط نصي آمن داخل onclick="fn(...)": يعالج علامات الاقتباس والأحرف الخاصة
 function jsStr(value) {
   return escapeHtml(JSON.stringify(String(value === null || value === undefined ? "" : value)));
 }
+
+// ====== الحيلة العبقرية لـ ImageKit ======
+// هذه الدالة تتدخل في الرابط وتطلب المقاس المطلوب بدقة، مما يوفر الباقة ويزيد الجودة!
+window.getIkUrl = function(url, width, quality) {
+  if (!url || typeof url !== 'string' || !url.includes("ik.imagekit.io")) return url;
+  quality = quality || 85;
+  const trString = "tr:w-" + width + ",q-" + quality + ",f-auto";
+  if (url.match(/\/tr:[^\/]+\//)) {
+    return url.replace(/\/tr:[^\/]+\//, "/" + trString + "/");
+  } else {
+    return url.replace(/(ik\.imagekit\.io\/[^\/]+\/)/, "$1" + trString + "/");
+  }
+};
+// ==========================================
 
 const NAV_LINKS = [
   { href: "index.html", label: "الرئيسية", key: "home", icon: "home" },
@@ -223,7 +234,8 @@ function initGlobalSearch() {
       }
 
       resultsBox.innerHTML = matched.map(p => {
-          const img = p.image ? `<img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}">` : `<div class="search-img-placeholder">${iconSvg("box")}</div>`;
+          // جلب صورة مصغرة للبحث باستخدام الدالة الجديدة
+          const img = p.image ? `<img src="${escapeHtml(window.getIkUrl(p.image, 150, 70))}" alt="${escapeHtml(p.name)}">` : `<div class="search-img-placeholder">${iconSvg("box")}</div>`;
           return `
               <a href="product.html?id=${encodeURIComponent(p.id)}" class="search-result-item">
                   <div class="search-item-img">${img}</div>
@@ -302,7 +314,6 @@ function updateCartBadge() {
   el.style.display = count > 0 ? "flex" : "none";
 }
 
-// دالة الإشعارات المحسنة (تدعم الألوان حسب النوع)
 function showToast(message, type = 'success') {
   let toast = document.getElementById("appToast");
   if (!toast) {
@@ -312,7 +323,7 @@ function showToast(message, type = 'success') {
   }
   
   toast.textContent = message;
-  toast.className = "toast show"; // إعادة تعيين الأصناف
+  toast.className = "toast show";
   
   if (type === 'success') {
       toast.classList.add("toast-success");
@@ -324,7 +335,6 @@ function showToast(message, type = 'success') {
   toast._timer = setTimeout(function () { toast.classList.remove("show"); }, 2400);
 }
 
-// إنشاء وبرمجة زر الصعود للأعلى
 function initBackToTop() {
   let btn = document.getElementById("backToTopBtn");
   if (!btn) {
@@ -349,13 +359,13 @@ function initBackToTop() {
   });
 }
 
-function fixRelativePaths(scope) { /* no-op: flat file structure */ }
+function fixRelativePaths(scope) { /* no-op */ }
 
 document.addEventListener("DOMContentLoaded", function () {
   renderHeader();
   renderFooter();
   updateCartBadge();
-  initBackToTop(); // تفعيل زر الصعود
+  initBackToTop();
 });
 document.addEventListener("cart:updated", updateCartBadge);
 document.addEventListener("store:synced", function () {

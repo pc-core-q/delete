@@ -1,7 +1,7 @@
 /* ==========================================================================
    admin.js
    منطق لوحة تحكم الأدمن بالكامل (admin.html). 
-   تم التحديث: دعم الصور المتعددة وتصحيح حفظ الألوان وحماية المخزون.
+   تم التحديث: دعم الصور المتعددة وتصحيح حفظ الألوان وحماية المخزون، ونظام الطلبات الجديد.
    ========================================================================== */
 
 let editingProductId = null;
@@ -932,50 +932,87 @@ function saveAdForm(e) {
 }
 
 /* ---------------------------------------------------------------------- */
-/* سجلّ الطلبات ودالة خصم المخزون                                         */
+/* سجلّ الطلبات ودالة خصم المخزون المتطورة                                 */
 /* ---------------------------------------------------------------------- */
 
-// دالة جديدة لخصم المخزون عند تأكيد الطلب
-window.deductOrderStock = async function(orderId) {
+// تحديث حالة الطلب وخصم المخزون تلقائياً
+window.changeOrderStatus = async function(orderId, selectElement) {
+    const newStatus = selectElement.value;
     const orders = Store.getOrders();
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
 
-    if (confirm("هل أنت متأكد من خصم كميات هذا الطلب من المخزون؟")) {
-        showToast("جاري خصم الكميات وتحديث المخزون...");
-        
-        for (let item of order.items) {
-            let product = Store.getProduct(item.productId);
-            if (!product) continue;
+    // إذا اختار "مجهز" ولم يتم خصم المخزون مسبقاً
+    if (newStatus === 'prepared' && !order.stockDeducted) {
+        if (confirm("هل تريد تأكيد تجهيز الطلب وخصم المنتجات من المخزون تلقائياً؟")) {
+            showToast("جاري التحديث وخصم الكميات...");
             
-            let updated = false;
-            // فحص إذا كان المنتج يحتوي على خيارات (ألوان/مقاسات)
-            if (Store.hasVariantMatrix(product) && product.inventory) {
-                let key = (item.color || "_") + "||" + (item.size || "_");
-                if (product.inventory[key] !== undefined && product.inventory[key] >= item.qty) {
-                    product.inventory[key] -= item.qty;
-                    updated = true;
+            for (let item of order.items) {
+                let product = Store.getProduct(item.productId);
+                if (!product) continue;
+                
+                let updated = false;
+                if (Store.hasVariantMatrix(product) && product.inventory) {
+                    let key = (item.color || "_") + "||" + (item.size || "_");
+                    if (product.inventory[key] !== undefined && product.inventory[key] >= item.qty) {
+                        product.inventory[key] -= item.qty;
+                        updated = true;
+                    }
+                } else {
+                    if (product.stock >= item.qty) {
+                        product.stock -= item.qty;
+                        updated = true;
+                    }
                 }
-            } else {
-                // منتج عادي بدون خيارات
-                if (product.stock >= item.qty) {
-                    product.stock -= item.qty;
-                    updated = true;
+
+                if (updated) {
+                    // إعادة حساب المخزون الكلي للمنتج لحفظه
+                    let newTotalStock = Store.hasVariantMatrix(product) 
+                        ? Object.values(product.inventory).reduce((sum, n) => sum + (Number(n) || 0), 0)
+                        : product.stock;
+                        
+                    await Store.updateProduct(product.id, { 
+                        stock: newTotalStock, 
+                        inventory: product.inventory 
+                    });
                 }
             }
+            
+            order.stockDeducted = true;
+            order.status = newStatus;
+            await updateOrderInFirebase(order.id, { status: 'prepared', stockDeducted: true });
+            showToast("تم تجهيز الطلب وخصم المخزون بنجاح!");
+        } else {
+            // التراجع عن التحديد في القائمة المنسدلة إذا رفض المستخدم
+            selectElement.value = order.status || 'pending';
+            return;
+        }
+    } else {
+        // تغيير حالة عادي (مثلاً إلى قيد المعالجة أو ملغي)
+        order.status = newStatus;
+        await updateOrderInFirebase(order.id, { status: newStatus });
+        showToast("تم تحديث حالة الطلب.");
+    }
+    
+    renderOrdersTable();
+};
 
-            if (updated) {
-                // تحديث المنتج في قاعدة البيانات
-                await Store.updateProduct(product.id, { 
-                    stock: product.stock, 
-                    inventory: product.inventory 
+// دالة مساعدة لتحديث الطلب في السيرفر (Firebase) والمحلي
+window.updateOrderInFirebase = async function(orderId, patch) {
+    const list = Store.getOrders().map(o => o.id === orderId ? Object.assign({}, o, patch) : o);
+    localStorage.setItem("ws_orders", JSON.stringify(list));
+    
+    if (typeof database !== "undefined" && database) {
+        try {
+            const snapshot = await database.ref("ws_orders").orderByChild("id").equalTo(orderId).once("value");
+            if (snapshot.exists()) {
+                snapshot.forEach(child => {
+                    child.ref.update(patch);
                 });
             }
-        }
-        showToast("تم خصم الكميات من المخزون بنجاح!");
-        setTimeout(() => location.reload(), 1500); // تحديث الصفحة لرؤية النتائج
+        } catch(e) { console.error("Error updating order in FB", e); }
     }
-}
+};
 
 function renderOrdersTable() {
   const tbody = document.getElementById("ordersTableBody");
@@ -997,7 +1034,6 @@ function renderOrdersTable() {
       return escapeHtml(it.name) + (opts.length ? " (" + opts.join(" / ") + ")" : "") + " ×" + it.qty;
     }).join("، ");
 
-    // إعداد بطاقة تفاصيل الزبون والعنوان
     const cust = o.customer || {};
     let customerHtml = '<span style="color:var(--ink-400);font-size:.85rem;">بدون بيانات توصيل</span>';
     if (cust.phone || cust.gov) {
@@ -1009,8 +1045,21 @@ function renderOrdersTable() {
         '</div>';
     }
 
-    // زر خصم المخزون
-    const deductBtn = `<br><button class="btn btn-sm btn-outline" style="margin-top: 5px; font-size: 0.75rem; padding: 4px 8px;" onclick="deductOrderStock('${o.id}')">خصم من المخزون</button>`;
+    // القائمة المنسدلة الجديدة للحالة
+    const status = o.status || 'pending';
+    const deducted = o.stockDeducted ? true : false;
+    let statusHtml = `
+      <select class="order-status-select" onchange="changeOrderStatus('${o.id}', this)" style="padding:6px; border-radius:6px; font-size:0.85rem; border:1px solid var(--line-strong); background:#fff; cursor:pointer;">
+        <option value="pending" ${status === 'pending' ? 'selected' : ''}>قيد المعالجة ⏳</option>
+        <option value="prepared" ${status === 'prepared' ? 'selected' : ''}>تم التجهيز ✅</option>
+        <option value="cancelled" ${status === 'cancelled' ? 'selected' : ''}>ملغي ❌</option>
+      </select>
+    `;
+    
+    // إظهار ملاحظة في حال تم خصم المخزون مسبقاً لمنع التكرار
+    if (deducted) {
+        statusHtml += `<div style="font-size:0.75rem; color:var(--success); margin-top:6px; font-weight:bold;">(تم خصم المخزون)</div>`;
+    }
 
     return (
       "<tr>" +
@@ -1019,7 +1068,7 @@ function renderOrdersTable() {
         "<td>" + (o.type === "cart" ? "سلة كاملة" : "منتج واحد") + "</td>" +
         "<td>" + summary + "</td>" +
         "<td>" + formatPrice(o.total) + "</td>" +
-        "<td>" + deductBtn + "</td>" + // عمود جديد للزر
+        "<td>" + statusHtml + "</td>" + 
       "</tr>"
     );
   }).join("");

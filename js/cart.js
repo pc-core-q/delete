@@ -1,11 +1,9 @@
 /* ==========================================================================
    cart.js
-   منطق صفحة السلة (cart.html) فقط — محمي بالتحقق من وجود #cartItems حتى
-   يمكن تضمين الملف بأمان دون أن يؤثر على صفحات أخرى.
-   تم التحديث: إضافة رسائل توست (Toasts) ديناميكية ملونة لتجربة مستخدم أفضل.
+   منطق صفحة السلة (cart.html) فقط.
+   تم التحديث: تطبيق دالة getIkUrl لتقليل استهلاك الباقة بطلب صور مصغرة.
    ========================================================================== */
 
-// صورة سطر السلة: صورة اللون المحدد إن وُجدت، وإلا صورة الخيار النصي القديم، وإلا صورة المنتج
 function cartLineMediaUrl(line, product) {
   if (line.color && product.colors && product.colors.length) {
     const c = product.colors.find(function (cc) { return cc.name === line.color; });
@@ -17,7 +15,6 @@ function cartLineMediaUrl(line, product) {
   return product.image || null;
 }
 
-// نص وصف الخيار المعروض بجانب اسم المنتج في السلة (لون/مقاس أو خيار نصي قديم)
 function cartLineVariantLabel(line) {
   const parts = [];
   if (line.color) parts.push(line.color);
@@ -28,8 +25,10 @@ function cartLineVariantLabel(line) {
 
 function cartLineHtml(line, product, unavailable) {
   const mediaUrl = cartLineMediaUrl(line, product);
-  const media = mediaUrl
-    ? '<img src="' + escapeHtml(mediaUrl) + '" alt="' + escapeHtml(product.name) + '">'
+  // هنا التعديل: نطلب صورة بحجم 150 بكسل فقط للسلة
+  const optimizedMediaUrl = typeof window.getIkUrl === 'function' ? window.getIkUrl(mediaUrl, 150, 70) : mediaUrl;
+  const media = optimizedMediaUrl
+    ? '<img src="' + escapeHtml(optimizedMediaUrl) + '" alt="' + escapeHtml(product.name) + '">'
     : '<div class="placeholder-icon-wrap">' + iconSvg(
         (Store.getCategories().find(function (c) { return c.id === product.categoryId; }) || {}).icon || "box"
       ) + "</div>";
@@ -80,7 +79,6 @@ function renderCartPage() {
     const variantStock = Store.getVariantStock(product, line.color, line.size);
     const unavailable = !product.available || variantStock <= 0;
     if (unavailable) {
-      // لا يدخل في المجموع ولا في الطلب (يتطابق مع getOrderableCartLines في whatsapp.js)
       hasUnavailable = true;
       rows.push(cartLineHtml(line, product, true));
       return;
@@ -173,7 +171,6 @@ async function initCartPage() {
   const checkoutBtn = document.getElementById("checkoutBtn");
   if (!checkoutBtn) return;
 
-  // السلة لا تحتاج كل المنتجات؛ نجلب فقط المنتجات الموجودة فعليًا في السلة.
   const cartLines = Store.getCart();
   if (cartLines.length && typeof Store.loadProductById === "function") {
     await Promise.all(cartLines.map(function(line) { return Store.loadProductById(line.productId); }));

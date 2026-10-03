@@ -1,5 +1,5 @@
 /* ==========================================================================
-   products.js (النسخة المحسنة — ألوان متباعدة بوضوح تحت الصورة)
+   products.js (النسخة المحسنة — زر تحميل المزيد بدلاً من التحميل التلقائي)
    ========================================================================== */
 
 function productMediaHtml(product) {
@@ -115,29 +115,41 @@ function resetShopPagination() {
   };
 }
 
+// دالة تغيير حالة زر التحميل
 function showShopLoading(show) {
-  const el = document.getElementById("shopLoading");
-  if (el) el.style.display = show ? "flex" : "none";
+  const btn = document.getElementById("shopLoadMoreBtn");
+  if (btn) {
+    if (show) {
+      btn.textContent = "جاري التحميل...";
+      btn.disabled = true;
+    } else {
+      btn.textContent = "تحميل المزيد";
+      btn.disabled = false;
+    }
+  }
 }
 
+// إنشاء زر تحميل المزيد بدلاً من المراقبة التلقائية
 function ensureShopPaginationUI() {
   const grid = document.getElementById("shopGrid");
-  if (!grid || document.getElementById("shopLoadMoreSentinel")) return;
+  if (!grid || document.getElementById("shopLoadMoreWrap")) return;
 
   const wrap = document.createElement("div");
   wrap.id = "shopLoadMoreWrap";
-  wrap.style.cssText = "grid-column:1/-1;text-align:center;padding:14px 0;";
-  wrap.innerHTML =
-    '<div id="shopLoading" style="display:none;align-items:center;justify-content:center;gap:8px;color:var(--ink-500);font-size:.9rem;">جاري تحميل المزيد…</div>' +
-    '<div id="shopLoadMoreSentinel" aria-hidden="true" style="height:2px;"></div>';
-  grid.parentNode.insertBefore(wrap, grid.nextSibling);
+  wrap.style.cssText = "grid-column:1/-1;text-align:center;padding:24px 0;";
+  
+  const btn = document.createElement("button");
+  btn.id = "shopLoadMoreBtn";
+  btn.className = "btn btn-outline";
+  btn.textContent = "تحميل المزيد";
+  btn.style.cssText = "min-width: 200px;";
+  
+  btn.addEventListener("click", function() {
+    loadNextShopPage();
+  });
 
-  if ("IntersectionObserver" in window) {
-    const observer = new IntersectionObserver(function(entries) {
-      if (entries.some(function(entry) { return entry.isIntersecting; })) loadNextShopPage();
-    }, { rootMargin: "500px 0px" });
-    observer.observe(document.getElementById("shopLoadMoreSentinel"));
-  }
+  wrap.appendChild(btn);
+  grid.parentNode.insertBefore(wrap, grid.nextSibling);
 }
 
 function initShopPage() {
@@ -405,8 +417,9 @@ async function renderShopResults(options) {
   const countEl = document.getElementById("resultCount");
   if (countEl) countEl.textContent = (shopState.pagination.done ? list.length : list.length + "+") + " منتج";
 
-  const sentinel = document.getElementById("shopLoadMoreSentinel");
-  if (sentinel) sentinel.style.display = shopState.pagination.done ? "none" : "block";
+  // إخفاء حاوية زر التحميل إذا انتهت المنتجات
+  const wrap = document.getElementById("shopLoadMoreWrap");
+  if (wrap) wrap.style.display = (shopState.pagination.done || list.length === 0) ? "none" : "block";
 }
 
 async function loadNextShopPage() {

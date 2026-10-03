@@ -41,71 +41,28 @@ h2{font-size:clamp(1.35rem,2.6vw,2rem)}
   .global-search-container{width:100%;margin:0;height:100dvh;max-height:100dvh;border-radius:0;padding:14px}
 }
 
-/* Hero */
+/* Hero - استعادة التصميم القديم مع تعديل النسبة إلى 4:3 فقط */
 .hero{padding:28px 0 20px}
 .hero:before,.hero:after,.hero-art:before{display:none}
 .hero-eyebrow-free{border-radius:var(--r-ctl);box-shadow:none;background:var(--olive-50);border-color:transparent;font-weight:600}
-
-/* جعل الهيرو عمودياً (سلايدر فوق والنص تحت) لجميع الشاشات لمنع القص */
-.hero-inner {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 24px !important;
-}
-
-.hero-art {
-  order: -1;
-  width: 100%;
-  max-width: 100% !important;
-  flex: none !important;
-  background: none;
-  box-shadow: none;
-  border-radius: var(--r-card);
-  min-height: 0;
-}
-
-.promo-slider-container {
-  width: 100%;
-  height: auto;
-  border-radius: var(--r-card);
-  box-shadow: none;
-  aspect-ratio: 4/3; /* نسبة الجوال */
-}
-
-/* نسبة عريضة للتابلت لمنع قص الصورة */
-@media(min-width: 768px) {
-  .promo-slider-container { aspect-ratio: 16/7; }
-}
-
-/* نسبة بانر عريضة جداً للديسكتوب */
-@media(min-width: 1024px) {
-  .promo-slider-container { aspect-ratio: 21/8; }
-}
-
-.hero-art-default{aspect-ratio:16/9;border-radius:var(--r-card);background:var(--olive-900);display:grid;place-items:center}
-.hero-art-default img{width:34%}
-
-.hero-copy {
-  padding: 0;
-  width: 100%;
-}
+.hero-copy{padding:0}
 .hero-copy h1{margin:14px 0 12px}
 .hero-trust div{border-radius:var(--r-ctl);background:#fff}
-
-/* توسيط النص في التابلت والديسكتوب */
-@media(min-width: 768px){
-  .hero{padding:24px 0 32px}
-  .hero-copy {
-    text-align: center;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    max-width: 850px;
-    margin: 0 auto;
-  }
-  .hero-trust { justify-content: center; }
+.hero-art{background:none;box-shadow:none;border-radius:var(--r-card);min-height:0;width:100%}
+/* التعديل هنا فقط: النسبة أصبحت 4:3 */
+.promo-slider-container{aspect-ratio:4/3;border-radius:var(--r-card);box-shadow:none}
+.hero-art-default{aspect-ratio:4/3;border-radius:var(--r-card);background:var(--olive-900);display:grid;place-items:center}
+.hero-art-default img{width:34%}
+@media(max-width:900px){
+  .hero-inner{display:flex;flex-direction:column;gap:18px}
+  .hero-art{order:-1;max-width:680px;margin-inline:auto}
 }
-
+@media(min-width:901px){
+  .hero{padding:44px 0 32px}
+  .hero-inner{display:flex;align-items:center;gap:44px}
+  .hero-copy{flex:1.1}
+  .hero-art{flex:1;max-width:560px}
+}
 @media(max-width:650px){
   .hero{padding:16px 0 12px}
   .hero-copy h1{font-size:1.85rem}
@@ -114,7 +71,7 @@ h2{font-size:clamp(1.35rem,2.6vw,2rem)}
   .hero-trust{display:none}
 }
 
-/* Sections — مسافات متقاربة */
+/* Sections — تقليل المسافات */
 .section{padding:24px 0}
 .section-head{margin-bottom:14px}
 .section-head h2{margin-bottom:4px}
@@ -125,7 +82,7 @@ h2{font-size:clamp(1.35rem,2.6vw,2rem)}
   .section-head p{display:none}
 }
 
-/* Categories — بطاقات بخلفية وإطار */
+/* Categories — وضع خلفية وإطار لكل قسم */
 .cat-scroller,.category-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:20px 16px;overflow:visible;padding:0;scroll-snap-type:none}
 .cat-chip,.category-card{
   display:flex;flex-direction:column;align-items:center;justify-content:flex-start;

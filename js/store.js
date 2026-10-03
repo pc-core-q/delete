@@ -93,7 +93,7 @@ async function pullFromFirebase() {
   try {
     const lastSync = localStorage.getItem("last_meta_pull_time");
     const now = Date.now();
-    const cooldownMs = 1 * 60 * 1000; // مدة الكاش: 15 دقيقة
+    const cooldownMs = 1 * 1 * 1; // مدة الكاش: 15 دقيقة
 
     if (lastSync && (now - parseInt(lastSync, 10)) < cooldownMs) {
       const notifySync = () => document.dispatchEvent(new CustomEvent("store:synced"));

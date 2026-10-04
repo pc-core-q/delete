@@ -1,7 +1,7 @@
 /* ==========================================================================
    admin.js
    منطق لوحة تحكم الأدمن بالكامل (admin.html). 
-   تم التحديث: دعم الضغط المسبق عالي الجودة للصور، دعم الصور المتعددة، ونظام الطلبات.
+   تم التحديث: حماية الجودة والألوان، منع الضغط المزدوج، وإدارة الطلبات والمنتجات.
    ========================================================================== */
 
 let editingProductId = null;
@@ -61,7 +61,7 @@ async function initAdminPage() {
 }
 
 /* ---------------------------------------------------------------------- */
-/* ضغط وتجهيز الصور محلياً بأعلى دقة وألوان نقية قبل الرفع               */
+/* دالة ضغط فائقة النقاء تحافظ على الأبعاد الكاملة والألوان الطبيعية     */
 /* ---------------------------------------------------------------------- */
 
 async function compressImageBeforeUpload(file, isBanner = false) {
@@ -70,10 +70,10 @@ async function compressImageBeforeUpload(file, isBanner = false) {
   }
 
   return new Promise((resolve) => {
-    // 1200px للمنتجات و1600px للبانر تكفي شاشات الآيباد وRetina بجودة تامة
-    const maxDimension = isBanner ? 1600 : 1200;
-    // جودة 0.82 تحافظ على تدرجات الألوان والتفاصيل الدقيقة بحجم ~100-140KB
-    const quality = isBanner ? 0.80 : 0.82;
+    // أبعاد واسعة تضمن عدم بكسلة الصورة على شاشات الآيباد وRetina
+    const maxDimension = isBanner ? 2000 : 1800;
+    // جودة 0.90 تحافظ على تدرجات الألوان والتفاصيل الدقيقة وتمنع الضبابية
+    const quality = 0.90;
 
     const reader = new FileReader();
     reader.readAsDataURL(file);
@@ -99,24 +99,15 @@ async function compressImageBeforeUpload(file, isBanner = false) {
         canvas.height = height;
         const ctx = canvas.getContext("2d");
 
-        // تنعيم عالي لمنع تشوه التفاصيل
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = "high";
-
         ctx.drawImage(img, 0, 0, width, height);
 
         canvas.toBlob(
           (blob) => {
-            if (!blob) {
-              resolve(file);
-              return;
-            }
+            if (!blob) return resolve(file);
             const cleanName = file.name.replace(/\.[^.]+$/, "") + ".webp";
-            const compressedFile = new File([blob], cleanName, {
-              type: "image/webp",
-              lastModified: Date.now()
-            });
-            resolve(compressedFile);
+            resolve(new File([blob], cleanName, { type: "image/webp", lastModified: Date.now() }));
           },
           "image/webp",
           quality
@@ -129,7 +120,7 @@ async function compressImageBeforeUpload(file, isBanner = false) {
 }
 
 /* ---------------------------------------------------------------------- */
-/* رفع الصور ومعالجتها الذكية بدقة عالية عبر ImageKit CDN                 */
+/* رفع الصور إلى ImgBB وتخزين رابط ImageKit النظيف بدون تحويلات مسبقة      */
 /* ---------------------------------------------------------------------- */
 
 async function uploadToImgBB(file, isBanner = false) {
@@ -138,13 +129,11 @@ async function uploadToImgBB(file, isBanner = false) {
     throw new Error("لم يتم إعداد مفتاح ImgBB بعد. أضِف imgbbApiKey في js/config.js لتفعيل رفع الصور.");
   }
 
-  // ضغط الصورة محلياً قبل استهلاك الباندويث
   const optimizedFile = await compressImageBeforeUpload(file, isBanner);
 
   const formData = new FormData();
   formData.append("image", optimizedFile);
 
-  // 1. الرفع الفعلي لـ ImgBB
   const response = await fetch("https://api.imgbb.com/1/upload?key=" + encodeURIComponent(apiKey), {
     method: "POST",
     body: formData
@@ -158,23 +147,13 @@ async function uploadToImgBB(file, isBanner = false) {
   const rawUrl = data.data.url;
   const imageKitEndpoint = (typeof STORE_CONFIG !== "undefined" && STORE_CONFIG.imageKitEndpoint || "").trim().replace(/\/+$/, "");
 
-  // إن لم يتم إعداد ImageKit، نستخدم رابط ImgBB مباشرة
-  if (!imageKitEndpoint) {
-    return rawUrl;
-  }
+  if (!imageKitEndpoint) return rawUrl;
 
-  // 2. مطابقة رابط ImgBB
   const match = rawUrl.match(/^https?:\/\/i\.ibb\.co\/(.+)$/);
-  if (!match) {
-    return rawUrl;
-  }
+  if (!match) return rawUrl;
 
-  const transform = isBanner
-    ? "tr:w-1400,q-85,f-auto"
-    : "tr:w-1000,q-85,f-auto";
-  
-  // 4. بناء الرابط النهائي عبر ImageKit CDN
-  return imageKitEndpoint + "/" + transform + "/" + match[1];
+  // تخزين الرابط بدون وسم tr: مسبق لكي تتولى دالة getIkUrl في الواجهة تحديد المقاس المناسب بدقة وبدون تضارب
+  return imageKitEndpoint + "/" + match[1];
 }
 
 /* ---------------------------------------------------------------------- */

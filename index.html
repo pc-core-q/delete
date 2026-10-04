@@ -6,8 +6,15 @@
   <title>الرئيسية | متجرك الإلكتروني</title>
   <meta name="description" content="تصفّح منتجاتنا واطلب مباشرة عبر واتساب بسهولة وسرعة.">
   <link rel="icon" href="assets/logo/logo.png">
-  <link rel="stylesheet" href="css/style.css?v=44">
-  <link rel="stylesheet" href="css/refresh.css?v=44">
+
+  <!-- تسريع الاتصال بالخوادم الخارجية مسبقاً -->
+  <link rel="preconnect" href="https://test3-2a6de-default-rtdb.europe-west1.firebasedatabase.app" crossorigin>
+  <link rel="preconnect" href="https://ik.imagekit.io" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link rel="stylesheet" href="css/style.css?v=45">
+  <link rel="stylesheet" href="css/refresh.css?v=45">
 </head>
 <body>
 
@@ -137,17 +144,17 @@
   
 <div id="site-footer"></div>
 
-<script src="js/config.js?v=44"></script>
-<script src="js/icons.js?v=44"></script>
+<script src="js/config.js?v=45"></script>
+<script src="js/icons.js?v=45"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="js/store.js?v=44"></script>
-<script src="js/whatsapp.js?v=44"></script>
-<script src="js/app.js?v=44"></script>
+<script src="js/store.js?v=45"></script>
+<script src="js/whatsapp.js?v=45"></script>
+<script src="js/app.js?v=45"></script>
 <script>
   let slideInterval = null;
 
-function productMediaHtml(product) {
+  function productMediaHtml(product) {
     if (product.image) {
       return '<img src="' + escapeHtml(window.getIkUrl(product.image, 400, 80)) + '" alt="' + escapeHtml(product.name || "") + '" class="product-media-img" loading="lazy" decoding="async">';
     }
@@ -276,6 +283,7 @@ function productMediaHtml(product) {
       }).join("");
     }
 
+    // عرض لحظي للمحتوى المخزن في الكاش أولاً دون انتظار السيرفر
     const cachedFeatured = JSON.parse(localStorage.getItem("ws_products_filter_featured") || "[]");
     const cachedOffers = JSON.parse(localStorage.getItem("ws_products_filter_offers") || "[]");
     const cachedNew = JSON.parse(localStorage.getItem("ws_products_filter_new") || "[]");
@@ -285,6 +293,7 @@ function productMediaHtml(product) {
 
     renderAdsSlider();
 
+    // جلب البيانات مع احترام مدة الكاش
     const homeResults = await Promise.all([
       Store.loadProductsByField("featured", true, "featured", false),
       Store.loadProductsByField("isOffer", true, "offers", false),
@@ -353,8 +362,26 @@ function productMediaHtml(product) {
     }
   }
 
-  document.addEventListener("DOMContentLoaded", renderAllHomeContent);
-  document.addEventListener("store:synced", renderAllHomeContent);
+  // عرض فوري للمحتوى بمجرد تحميل هيكل الصفحة دون انتظار الشبكة
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", renderAllHomeContent, { once: true });
+  } else {
+    renderAllHomeContent();
+  }
+
+  // تحديث الأقسام والإعلانات فقط عند اكتمال مزامنة جديدة بدون إعادة تحميل شبكات المنتجات
+  document.addEventListener("store:synced", () => {
+    const catEl = document.getElementById("homeCategories");
+    if (catEl) {
+      const categories = Store.getCategories();
+      const mainCategories = categories.filter(c => !c.parentId);
+      catEl.innerHTML = mainCategories.map(c => {
+        const media = c.image ? `<img src="${escapeHtml(c.image)}" alt="${escapeHtml(c.name)}" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">` : iconSvg(c.icon || "box");
+        return `<a href="products.html?cat=${encodeURIComponent(c.id)}" class="cat-chip"><span class="cat-icon" style="padding:0;overflow:hidden;display:flex;align-items:center;justify-content:center;">${media}</span><span class="name">${escapeHtml(c.name)}</span></a>`;
+      }).join("");
+    }
+    renderAdsSlider();
+  });
 </script>
 </body>
 </html>

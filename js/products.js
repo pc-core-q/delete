@@ -505,15 +505,14 @@ async function initProductDetailPage() {
   }
 
   if (allImages.length > 0) {
-    // الداخل: نطلب 1000px لضمان دقة فائقة خالية من البكسلة
-    galleryHtml = '<div class="detail-gallery"><img id="mainProductDetailImage" src="' + escapeHtml(window.getIkUrl(allImages[0], 1000, 95)) + '" alt="' + escapeHtml(product.name) + '" class="detail-gallery-img"></div>';
+    // الداخل: نطلب 900px بجودة 85% لوزن أقل من 100KB وبحدة مطابقة للبانر
+    galleryHtml = '<div class="detail-gallery"><img id="mainProductDetailImage" src="' + escapeHtml(window.getIkUrl(allImages[0], 900, 85)) + '" alt="' + escapeHtml(product.name) + '" class="detail-gallery-img"></div>';
     
     if (allImages.length > 1) {
         thumbnailsHtml = '<div class="gallery-thumbnails">';
         allImages.forEach((img, index) => {
             const activeClass = index === 0 ? "active" : "";
-            // المصغرات: نطلب 150px فقط
-            thumbnailsHtml += `<img src="${escapeHtml(window.getIkUrl(img, 150, 70))}" class="gallery-thumb ${activeClass}" data-src="${escapeHtml(window.getIkUrl(img, 1000, 95))}" alt="صورة ${index + 1}">`;
+            thumbnailsHtml += `<img src="${escapeHtml(window.getIkUrl(img, 150, 70))}" class="gallery-thumb ${activeClass}" data-src="${escapeHtml(window.getIkUrl(img, 900, 85))}" alt="صورة ${index + 1}">`;
         });
         thumbnailsHtml += '</div>';
     }
@@ -689,7 +688,7 @@ async function initProductDetailPage() {
         
         const colorObj = product.colors.find(function (c) { return c.name === selectedColor; });
         if (mainImage && colorObj && colorObj.image) {
-            mainImage.src = escapeHtml(window.getIkUrl(colorObj.image, 1000, 95));
+            mainImage.src = escapeHtml(window.getIkUrl(colorObj.image, 900, 85));
             thumbs.forEach(t => t.classList.remove("active"));
         }
         
@@ -738,7 +737,7 @@ async function initProductDetailPage() {
         li.style.fontWeight = "700";
         
         if (mainImage && product.variantImages && product.variantImages[selectedVariant]) {
-            mainImage.src = escapeHtml(window.getIkUrl(product.variantImages[selectedVariant], 1000, 95));
+            mainImage.src = escapeHtml(window.getIkUrl(product.variantImages[selectedVariant], 900, 85));
             thumbs.forEach(t => t.classList.remove("active"));
         }
       });

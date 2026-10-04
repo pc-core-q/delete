@@ -93,10 +93,9 @@ async function pullFromFirebase() {
   try {
     const lastSync = localStorage.getItem("last_meta_pull_time");
     const now = Date.now();
-    // تفعيل الكاش لـ 15 دقيقة حقيقية بدلاً من 1ms
-    const cooldownMs = 15 * 60 * 1000; 
+    // تفعيل الكاش لـ 15 دقيقة لتفادي استنزاف الاتصالات
+    const cooldownMs = 15 * 60 * 1000;
 
-    // إذا كانت البيانات موجودة محلياً ولم تنتهِ مدتها، نكتفي بها ولا نتصل بالسيرفر
     if (lastSync && (now - parseInt(lastSync, 10)) < cooldownMs) {
       return;
     }
@@ -124,8 +123,6 @@ async function pullFromFirebase() {
     }
 
     localStorage.setItem("last_meta_pull_time", now.toString());
-    
-    // إشعار الواجهة بالتحديث في الخلفية فقط إذا كان هناك تغيير فعلي
     const notifySync = () => document.dispatchEvent(new CustomEvent("store:synced"));
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", notifySync, { once: true });
     else notifySync();
@@ -133,6 +130,7 @@ async function pullFromFirebase() {
     console.error("Firebase metadata pull error:", e);
   }
 }
+
 async function fetchProductsByFieldFromFirebase(field, value) {
   if (!firebaseEnabled) return [];
   try {
@@ -611,7 +609,6 @@ const Store = {
 
   getOrders() { return JSON.parse(localStorage.getItem(DB_KEYS.orders) || "[]"); },
   
-  // دالة لجلب كل الطلبات للأدمن مباشرة من Firebase بدون كاش
   async loadOrdersFromFirebase() {
     if (!firebaseEnabled) return this.getOrders();
     try {
@@ -634,7 +631,6 @@ const Store = {
     list.unshift(newOrder);
     localStorage.setItem(DB_KEYS.orders, JSON.stringify(list));
     
-    // إضافة الطلب كعنصر مستقل في فايربيس بدلاً من استبدال العقدة كاملة
     if (firebaseEnabled) {
       database.ref(DB_KEYS.orders).push(newOrder).catch(error => {
         console.error("Firebase Log Order Error:", error);

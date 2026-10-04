@@ -5,25 +5,9 @@
   <meta charset="UTF-8">
   <title>الرئيسية | متجرك الإلكتروني</title>
   <meta name="description" content="تصفّح منتجاتنا واطلب مباشرة عبر واتساب بسهولة وسرعة.">
-  <!-- تبدأ لقطة بيانات المتجر بالتحميل فور فتح الصفحة (قبل CSS وبقية السكربتات) -->
-  <script>
-    (function () {
-      try {
-        if (location.protocol.indexOf("http") === 0 && !localStorage.getItem("ws_snapshot_time")) {
-          window.__bootstrap = fetch("/api/bootstrap").then(function (r) { if (!r.ok) throw 0; return r.json(); }).catch(function () { return null; });
-        }
-      } catch (e) {}
-    })();
-  </script>
-  <link rel="preconnect" href="https://i.ibb.co">
-  <!-- خطوط Google: اتصال مسبق + تحميل غير حاجب للعرض (النص يظهر فوراً بخط بديل ثم يتبدل) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
-  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap"></noscript>
   <link rel="icon" href="assets/logo/logo.png">
-  <link rel="stylesheet" href="css/style.css?v=46">
-  <link rel="stylesheet" href="css/refresh.css?v=46">
+  <link rel="stylesheet" href="css/style.css?v=44">
+  <link rel="stylesheet" href="css/refresh.css?v=44">
 </head>
 <body>
 
@@ -153,11 +137,13 @@
   
 <div id="site-footer"></div>
 
-<script src="js/config.js?v=46"></script>
-<script src="js/icons.js?v=46"></script>
-<script src="js/store.js?v=46"></script>
-<script src="js/whatsapp.js?v=46"></script>
-<script src="js/app.js?v=46"></script>
+<script src="js/config.js?v=44"></script>
+<script src="js/icons.js?v=44"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="js/store.js?v=44"></script>
+<script src="js/whatsapp.js?v=44"></script>
+<script src="js/app.js?v=44"></script>
 <script>
   let slideInterval = null;
 
@@ -285,7 +271,7 @@ function productMediaHtml(product) {
       const categories = Store.getCategories();
       const mainCategories = categories.filter(function(c) { return !c.parentId; });
       catEl.innerHTML = mainCategories.map(function (c) {
-        const media = c.image ? '<img src="' + escapeHtml(window.getIkUrl(c.image, 200, 80)) + '" alt="' + escapeHtml(c.name) + '" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">' : iconSvg(c.icon || "box");
+        const media = c.image ? '<img src="' + escapeHtml(c.image) + '" alt="' + escapeHtml(c.name) + '" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">' : iconSvg(c.icon || "box");
         return '<a href="products.html?cat=' + encodeURIComponent(c.id) + '" class="cat-chip"><span class="cat-icon" style="padding:0;overflow:hidden;display:flex;align-items:center;justify-content:center;">' + media + '</span><span class="name">' + escapeHtml(c.name) + "</span></a>";
       }).join("");
     }
@@ -321,7 +307,7 @@ function productMediaHtml(product) {
         let dotsHtml = '<div class="promo-dots">';
         
         ads.forEach((ad, index) => {
-            const imgWrap = ad.link ? `<a href="${escapeHtml(ad.link)}" target="_blank" rel="noopener" style="display:block;width:100%;height:100%;"><img src="${escapeHtml(window.getIkUrl(ad.image, 1200, 80))}" alt="" loading="lazy" decoding="async"></a>` : `<img src="${escapeHtml(window.getIkUrl(ad.image, 1200, 80))}" alt="" loading="lazy" decoding="async">`;
+            const imgWrap = ad.link ? `<a href="${escapeHtml(ad.link)}" target="_blank" rel="noopener" style="display:block;width:100%;height:100%;"><img src="${escapeHtml(ad.image)}" alt="" loading="lazy" decoding="async"></a>` : `<img src="${escapeHtml(ad.image)}" alt="" loading="lazy" decoding="async">`;
             trackHtml += `<div class="promo-slide" data-index="${index}">${imgWrap}</div>`;
             dotsHtml += `<div class="promo-dot ${index === 0 ? 'active' : ''}" data-target="${index}"></div>`;
         });

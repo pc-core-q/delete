@@ -7,14 +7,17 @@
   <meta name="description" content="تصفّح منتجاتنا واطلب مباشرة عبر واتساب بسهولة وسرعة.">
   <link rel="icon" href="assets/logo/logo.png">
 
-  <!-- تسريع الاتصال بالخوادم الخارجية مسبقاً -->
-  <link rel="preconnect" href="https://test3-2a6de-default-rtdb.europe-west1.firebasedatabase.app" crossorigin>
-  <link rel="preconnect" href="https://ik.imagekit.io" crossorigin>
+  <!-- مصافحة مسبقة سريعة للخوادم الخارجية لمنع التأخير -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://test3-2a6de-default-rtdb.europe-west1.firebasedatabase.app" crossorigin>
+  <link rel="preconnect" href="https://ik.imagekit.io" crossorigin>
 
-  <link rel="stylesheet" href="css/style.css?v=45">
-  <link rel="stylesheet" href="css/refresh.css?v=45">
+  <!-- تحميل الخطوط بدون تعطيل العرض في أول دخول عبر display=swap -->
+  <link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/style.css?v=46">
+  <link rel="stylesheet" href="css/refresh.css?v=46">
 </head>
 <body>
 
@@ -41,7 +44,10 @@
           <div><strong>سرعة</strong><span>توصيل سريع</span></div>
         </div>
       </div>
-      <div class="hero-art" id="heroPromoContainer"></div>
+      <div class="hero-art" id="heroPromoContainer">
+        <!-- صورة افتراضية تظهر فوراً قبل تحميل السلايدر -->
+        <div class="hero-art-default"><img src="assets/logo/logo.png" alt="شعار المتجر"></div>
+      </div>
     </div>
   </section>
 
@@ -66,7 +72,13 @@
         </div>
         <a href="products.html?filter=featured" class="btn btn-outline btn-sm">عرض الكل</a>
       </div>
-      <div class="product-grid" id="featuredGrid"></div>
+      <!-- هياكل تحميل Skeleton لمنع الفراغ في أول ثانية للعميل -->
+      <div class="product-grid" id="featuredGrid">
+        <div class="skeleton-card"><div class="skeleton-box skeleton-img"></div><div class="skeleton-box skeleton-text"></div><div class="skeleton-box skeleton-price"></div></div>
+        <div class="skeleton-card"><div class="skeleton-box skeleton-img"></div><div class="skeleton-box skeleton-text"></div><div class="skeleton-box skeleton-price"></div></div>
+        <div class="skeleton-card"><div class="skeleton-box skeleton-img"></div><div class="skeleton-box skeleton-text"></div><div class="skeleton-box skeleton-price"></div></div>
+        <div class="skeleton-card"><div class="skeleton-box skeleton-img"></div><div class="skeleton-box skeleton-text"></div><div class="skeleton-box skeleton-price"></div></div>
+      </div>
     </div>
   </section>
 
@@ -79,7 +91,12 @@
         </div>
         <a href="products.html?filter=offer" class="btn btn-outline btn-sm">عرض الكل</a>
       </div>
-      <div class="product-grid" id="offerGrid"></div>
+      <div class="product-grid" id="offerGrid">
+        <div class="skeleton-card"><div class="skeleton-box skeleton-img"></div><div class="skeleton-box skeleton-text"></div><div class="skeleton-box skeleton-price"></div></div>
+        <div class="skeleton-card"><div class="skeleton-box skeleton-img"></div><div class="skeleton-box skeleton-text"></div><div class="skeleton-box skeleton-price"></div></div>
+        <div class="skeleton-card"><div class="skeleton-box skeleton-img"></div><div class="skeleton-box skeleton-text"></div><div class="skeleton-box skeleton-price"></div></div>
+        <div class="skeleton-card"><div class="skeleton-box skeleton-img"></div><div class="skeleton-box skeleton-text"></div><div class="skeleton-box skeleton-price"></div></div>
+      </div>
     </div>
   </section>
 
@@ -92,7 +109,12 @@
         </div>
         <a href="products.html?filter=new" class="btn btn-outline btn-sm">عرض الكل</a>
       </div>
-      <div class="product-grid" id="newGrid"></div>
+      <div class="product-grid" id="newGrid">
+        <div class="skeleton-card"><div class="skeleton-box skeleton-img"></div><div class="skeleton-box skeleton-text"></div><div class="skeleton-box skeleton-price"></div></div>
+        <div class="skeleton-card"><div class="skeleton-box skeleton-img"></div><div class="skeleton-box skeleton-text"></div><div class="skeleton-box skeleton-price"></div></div>
+        <div class="skeleton-card"><div class="skeleton-box skeleton-img"></div><div class="skeleton-box skeleton-text"></div><div class="skeleton-box skeleton-price"></div></div>
+        <div class="skeleton-card"><div class="skeleton-box skeleton-img"></div><div class="skeleton-box skeleton-text"></div><div class="skeleton-box skeleton-price"></div></div>
+      </div>
     </div>
   </section>
 
@@ -144,13 +166,13 @@
   
 <div id="site-footer"></div>
 
-<script src="js/config.js?v=45"></script>
-<script src="js/icons.js?v=45"></script>
+<script src="js/config.js?v=46"></script>
+<script src="js/icons.js?v=46"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="js/store.js?v=45"></script>
-<script src="js/whatsapp.js?v=45"></script>
-<script src="js/app.js?v=45"></script>
+<script src="js/store.js?v=46"></script>
+<script src="js/whatsapp.js?v=46"></script>
+<script src="js/app.js?v=46"></script>
 <script>
   let slideInterval = null;
 
@@ -283,7 +305,7 @@
       }).join("");
     }
 
-    // عرض لحظي للمحتوى المخزن في الكاش أولاً دون انتظار السيرفر
+    // عرض محتوى الكاش فوراً إذا كان الزائر عائداً
     const cachedFeatured = JSON.parse(localStorage.getItem("ws_products_filter_featured") || "[]");
     const cachedOffers = JSON.parse(localStorage.getItem("ws_products_filter_offers") || "[]");
     const cachedNew = JSON.parse(localStorage.getItem("ws_products_filter_new") || "[]");
@@ -293,7 +315,7 @@
 
     renderAdsSlider();
 
-    // جلب البيانات مع احترام مدة الكاش
+    // جلب المنتجات مع احترام مدة الكاش أو من السيرفر لأول دخول
     const homeResults = await Promise.all([
       Store.loadProductsByField("featured", true, "featured", false),
       Store.loadProductsByField("isOffer", true, "offers", false),
@@ -362,14 +384,14 @@
     }
   }
 
-  // عرض فوري للمحتوى بمجرد تحميل هيكل الصفحة دون انتظار الشبكة
+  // عرض فوري بمجرد توفر الـ DOM
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", renderAllHomeContent, { once: true });
   } else {
     renderAllHomeContent();
   }
 
-  // تحديث الأقسام والإعلانات فقط عند اكتمال مزامنة جديدة بدون إعادة تحميل شبكات المنتجات
+  // تحديث هادئ للأقسام والإعلانات عند حدوث مزامنة
   document.addEventListener("store:synced", () => {
     const catEl = document.getElementById("homeCategories");
     if (catEl) {

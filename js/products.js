@@ -5,7 +5,7 @@
 function productMediaHtml(product) {
   if (product.image) {
     // بالخارج: نطلب 400px لتوفير الباقة وسرعة التحميل
-    return '<img src="' + escapeHtml(window.getIkUrl(product.image, 400, 80)) + '" alt="' + escapeHtml(product.name || "") + '" class="product-media-img" loading="lazy" decoding="async">';
+    return '<img src="' + escapeHtml(window.getIkUrl(product.image, 700, 85)) + '" alt="' + escapeHtml(product.name || "") + '" class="product-media-img" loading="lazy" decoding="async">';
   }
   const cat = Store.getCategories().find(function (c) { return c.id === product.categoryId; });
   const key = cat ? cat.icon : "box";

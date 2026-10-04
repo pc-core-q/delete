@@ -180,7 +180,7 @@
   function productMediaHtml(product) {
     if (product.image) {
       const imgUrl = (typeof window.getIkUrl === 'function')
-        ? window.getIkUrl(product.image, 400, 80)
+        ? window.getIkUrl(product.image, 700, 85)
         : product.image;
       return '<img src="' + escapeHtml(imgUrl) + '" alt="' + escapeHtml(product.name || "") + '" class="product-media-img" loading="lazy" decoding="async">';
     }

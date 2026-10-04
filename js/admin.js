@@ -362,11 +362,9 @@ function renderProductsTable() {
 
     const img = p.image ? '<img src="' + p.image + '">' : '<div class="admin-table-icon">' + iconSvg("box") + "</div>";
 
-    const statusPill = Store.isProductAvailable(p)
-
-      ? '<span class="pill pill-ok">متوفر</span>'
-
-      : '<span class="pill pill-off">غير متوفر</span>';
+  const statusPill = Store.isProductAvailable(p)
+  ? '<span class="pill pill-ok">متوفر</span>'
+  : '<span class="pill pill-off" style="color: #dc2626; background: #fee2e2; border: 1px solid #fca5a5; font-weight: bold;">غير متوفر</span>';
 
     const tags = [];
 

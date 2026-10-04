@@ -196,16 +196,9 @@ async function uploadToImgBB(file, isBanner = false) {
 
   }
 
-
-
-  const transform = isBanner
-
-    ? "tr:w-1200,q-90,f-auto"   // البنر يكفيه 800 بكسل بجودة 75
-
-    : "tr:w-800,q-85,f-auto";  // صور المنتجات 450 بكسل بجودة 70 ممتازة جداً وتزن 25KB فقط
-
-  
-
+const transform = isBanner
+    ? "tr:w-1400,q-90,f-webp"
+    : "tr:w-900,q-85,f-webp";
   // 4. بناء الرابط النهائي عبر ImageKit CDN
 
   return imageKitEndpoint + "/" + transform + "/" + match[1];

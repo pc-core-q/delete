@@ -19,11 +19,11 @@ function jsStr(value) {
 }
 
 // ====== الحيلة العبقرية لـ ImageKit ======
-// هذه الدالة تتدخل في الرابط وتطلب المقاس المطلوب بدقة، مما يوفر الباقة ويزيد الجودة!
+// تجبر السيرفر دائماً على تسليم صيغة WebP فائقة النقاء والصغر بدلاً من JPEG
 window.getIkUrl = function(url, width, quality) {
   if (!url || typeof url !== 'string' || !url.includes("ik.imagekit.io")) return url;
   quality = quality || 85;
-  const trString = "tr:w-" + width + ",q-" + quality + ",f-auto";
+  const trString = "tr:w-" + width + ",q-" + quality + ",f-webp";
   if (url.match(/\/tr:[^\/]+\//)) {
     return url.replace(/\/tr:[^\/]+\//, "/" + trString + "/");
   } else {
@@ -234,7 +234,6 @@ function initGlobalSearch() {
       }
 
       resultsBox.innerHTML = matched.map(p => {
-          // جلب صورة مصغرة للبحث باستخدام الدالة الجديدة
           const img = p.image ? `<img src="${escapeHtml(window.getIkUrl(p.image, 150, 70))}" alt="${escapeHtml(p.name)}">` : `<div class="search-img-placeholder">${iconSvg("box")}</div>`;
           return `
               <a href="product.html?id=${encodeURIComponent(p.id)}" class="search-result-item">
@@ -250,8 +249,9 @@ function initGlobalSearch() {
 }
 
 function renderFooter() {
-  const mount = document.getElementById("site-footer");
-  if (!mount) return;
+  const mount = document.getElementById("site-header");
+  const footerMount = document.getElementById("site-footer");
+  if (!footerMount) return;
   const rawSettings = Store.getSettings() || {};
   const settings = {
     storeName: escapeHtml(rawSettings.storeName || "متجرك الإلكتروني"),
@@ -264,7 +264,7 @@ function renderFooter() {
   };
   const categories = (Store.getCategories() || []).slice(0, 5);
   const catLinks = categories.map(function(c){ return '<li><a href="products.html?cat=' + encodeURIComponent(c.id) + '">' + escapeHtml(c.name) + '</a></li>'; }).join("");
-  mount.innerHTML =
+  footerMount.innerHTML =
     '<footer class="site-footer">' +
       '<div class="container">' +
         '<div class="footer-grid">' +

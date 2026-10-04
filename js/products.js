@@ -5,7 +5,7 @@
 function productMediaHtml(product) {
   if (product.image) {
     // بالخارج: نطلب 400px لتوفير الباقة وسرعة التحميل
-    return '<img src="' + escapeHtml(window.getIkUrl(product.image, 1000, 1000)) + '" alt="' + escapeHtml(product.name || "") + '" class="product-media-img" loading="lazy" decoding="async">';
+    return '<img src="' + escapeHtml(window.getIkUrl(product.image, 700, 85)) + '" alt="' + escapeHtml(product.name || "") + '" class="product-media-img" loading="lazy" decoding="async">';
   }
   const cat = Store.getCategories().find(function (c) { return c.id === product.categoryId; });
   const key = cat ? cat.icon : "box";
@@ -506,13 +506,13 @@ async function initProductDetailPage() {
 
   if (allImages.length > 0) {
     // الداخل: نطلب 900px بجودة 85% لوزن أقل من 100KB وبحدة مطابقة للبانر
-    galleryHtml = '<div class="detail-gallery"><img id="mainProductDetailImage" src="' + escapeHtml(window.getIkUrl(allImages[0], 900, 85)) + '" alt="' + escapeHtml(product.name) + '" class="detail-gallery-img"></div>';
+    galleryHtml = '<div class="detail-gallery"><img id="mainProductDetailImage" src="' + escapeHtml(window.getIkUrl(allImages[0], 1000, 85)) + '" alt="' + escapeHtml(product.name) + '" class="detail-gallery-img"></div>';
     
     if (allImages.length > 1) {
         thumbnailsHtml = '<div class="gallery-thumbnails">';
         allImages.forEach((img, index) => {
             const activeClass = index === 0 ? "active" : "";
-            thumbnailsHtml += `<img src="${escapeHtml(window.getIkUrl(img, 150, 70))}" class="gallery-thumb ${activeClass}" data-src="${escapeHtml(window.getIkUrl(img, 900, 85))}" alt="صورة ${index + 1}">`;
+            thumbnailsHtml += `<img src="${escapeHtml(window.getIkUrl(img, 150, 70))}" class="gallery-thumb ${activeClass}" data-src="${escapeHtml(window.getIkUrl(img, 1000, 85))}" alt="صورة ${index + 1}">`;
         });
         thumbnailsHtml += '</div>';
     }
@@ -688,7 +688,7 @@ async function initProductDetailPage() {
         
         const colorObj = product.colors.find(function (c) { return c.name === selectedColor; });
         if (mainImage && colorObj && colorObj.image) {
-            mainImage.src = escapeHtml(window.getIkUrl(colorObj.image, 900, 85));
+            mainImage.src = escapeHtml(window.getIkUrl(colorObj.image, 1000, 85));
             thumbs.forEach(t => t.classList.remove("active"));
         }
         
@@ -737,7 +737,7 @@ async function initProductDetailPage() {
         li.style.fontWeight = "700";
         
         if (mainImage && product.variantImages && product.variantImages[selectedVariant]) {
-            mainImage.src = escapeHtml(window.getIkUrl(product.variantImages[selectedVariant], 900, 85));
+            mainImage.src = escapeHtml(window.getIkUrl(product.variantImages[selectedVariant], 1000, 85));
             thumbs.forEach(t => t.classList.remove("active"));
         }
       });

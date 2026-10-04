@@ -93,12 +93,11 @@ async function pullFromFirebase() {
   try {
     const lastSync = localStorage.getItem("last_meta_pull_time");
     const now = Date.now();
-    const cooldownMs = 1 * 1 * 1; // مدة الكاش: 15 دقيقة
+    // تفعيل الكاش لـ 15 دقيقة حقيقية بدلاً من 1ms
+    const cooldownMs = 15 * 60 * 1000; 
 
+    // إذا كانت البيانات موجودة محلياً ولم تنتهِ مدتها، نكتفي بها ولا نتصل بالسيرفر
     if (lastSync && (now - parseInt(lastSync, 10)) < cooldownMs) {
-      const notifySync = () => document.dispatchEvent(new CustomEvent("store:synced"));
-      if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", notifySync, { once: true });
-      else notifySync();
       return;
     }
 
@@ -125,6 +124,8 @@ async function pullFromFirebase() {
     }
 
     localStorage.setItem("last_meta_pull_time", now.toString());
+    
+    // إشعار الواجهة بالتحديث في الخلفية فقط إذا كان هناك تغيير فعلي
     const notifySync = () => document.dispatchEvent(new CustomEvent("store:synced"));
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", notifySync, { once: true });
     else notifySync();
@@ -132,7 +133,6 @@ async function pullFromFirebase() {
     console.error("Firebase metadata pull error:", e);
   }
 }
-
 async function fetchProductsByFieldFromFirebase(field, value) {
   if (!firebaseEnabled) return [];
   try {

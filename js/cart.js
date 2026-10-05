@@ -1,7 +1,7 @@
 /* ==========================================================================
    cart.js
    منطق صفحة السلة (cart.html) فقط.
-   تم التحديث: تطبيق دالة getIkUrl لتقليل استهلاك الباقة بطلب صور مصغرة.
+   تم التحديث: حذف المنتج تلقائياً عند إنقاص الكمية لصفر + إبراز زر الإزالة.
    ========================================================================== */
 
 function cartLineMediaUrl(line, product) {
@@ -25,7 +25,6 @@ function cartLineVariantLabel(line) {
 
 function cartLineHtml(line, product, unavailable) {
   const mediaUrl = cartLineMediaUrl(line, product);
-  // هنا التعديل: نطلب صورة بحجم 150 بكسل فقط للسلة
   const optimizedMediaUrl = typeof window.getIkUrl === 'function' ? window.getIkUrl(mediaUrl, 150, 70) : mediaUrl;
   const media = optimizedMediaUrl
     ? '<img src="' + escapeHtml(optimizedMediaUrl) + '" alt="' + escapeHtml(product.name) + '">'
@@ -47,7 +46,9 @@ function cartLineHtml(line, product, unavailable) {
         "<h4>" + displayName + "</h4>" +
         unavailableHtml +
         '<div class="unit-price">' + formatPrice(product.price) + " / قطعة</div>" +
-        '<button type="button" class="remove-btn" onclick="removeCartLine(' + jsStr(line.itemKey) + ')">إزالة من السلة</button>' +
+        '<button type="button" class="remove-btn" onclick="removeCartLine(' + jsStr(line.itemKey) + ')">' + 
+          iconSvg("trash") + ' <span>إزالة من السلة</span>' + 
+        '</button>' +
       "</div>" +
       '<div class="qty-stepper">' +
         '<button type="button" onclick="stepCartQty(' + jsStr(line.itemKey) + ', -1)">−</button>' +
@@ -130,11 +131,16 @@ function stepCartQty(itemKey, delta) {
   const maxStock = Store.getVariantStock(product, line.color, line.size);
   const next = line.qty + delta;
   
-  if (next > maxStock) {
-      if (typeof showToast === "function") showToast("عذراً، هذه هي الكمية القصوى المتوفرة.", "error");
-      return;
+  // إذا كانت الكمية الحالية 1 وتم الضغط على زر الإنقاص، يُحذف المنتج فوراً
+  if (next <= 0) {
+    removeCartLine(itemKey);
+    return;
   }
-  if (next < 1) return;
+
+  if (next > maxStock) {
+    if (typeof showToast === "function") showToast("عذراً، هذه هي الكمية القصوى المتوفرة.", "error");
+    return;
+  }
 
   Store.setQty(itemKey, next);
   renderCartPage();
@@ -148,13 +154,16 @@ function setCartQty(itemKey, value) {
   if (!product) return;
   
   const maxStock = Store.getVariantStock(product, line.color, line.size);
-  let qty = parseInt(value, 10) || 1;
+  let qty = parseInt(value, 10);
+  
+  if (isNaN(qty) || qty <= 0) {
+    removeCartLine(itemKey);
+    return;
+  }
   
   if (qty > maxStock) {
-      qty = maxStock;
-      if (typeof showToast === "function") showToast("تم ضبط الكمية إلى الحد الأقصى المتوفر (" + maxStock + ").", "error");
-  } else if (qty < 1) {
-      qty = 1;
+    qty = maxStock;
+    if (typeof showToast === "function") showToast("تم ضبط الكمية إلى الحد الأقصى المتوفر (" + maxStock + ").", "error");
   }
   
   Store.setQty(itemKey, qty);
@@ -164,7 +173,7 @@ function setCartQty(itemKey, value) {
 function removeCartLine(itemKey) {
   Store.removeFromCart(itemKey);
   renderCartPage();
-  if (typeof showToast === "function") showToast("تم إزالة المنتج من السلة", "success");
+  if (typeof showToast === "function") showToast("تمت إزالة المنتج من السلة", "success");
 }
 
 async function initCartPage() {

@@ -16,8 +16,8 @@
   <!-- تحميل الخطوط بدون تعطيل العرض في أول دخول عبر display=swap -->
   <link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/style.css?v=47">
-  <link rel="stylesheet" href="css/refresh.css?v=47">
+  <link rel="stylesheet" href="css/style.css?v=48">
+  <link rel="stylesheet" href="css/refresh.css?v=48">
 </head>
 <body>
 
@@ -51,13 +51,16 @@
     </div>
   </section>
 
-  <section class="section" id="categories">
+  <!-- قسم الأقسام بعد إبراز عنوانه وإضافة زر العرض لشد الانتباه -->
+  <section class="section section-categories-highlight" id="categories">
     <div class="container">
       <div class="section-head">
         <div>
-          <h2>تسوّق حسب القسم</h2>
-          <p>كل منتجاتنا مرتّبة في أقسام واضحة وسهلة التصفح.</p>
+          <span class="section-tag" style="display:inline-block; margin-bottom:6px; font-weight:700; color:var(--sand-500, #b4883a); font-size:0.9rem;">✨ تصفح التشكيلات</span>
+          <h2>أقسام المتجر الرئيسية</h2>
+          <p>اختر القسم المناسب لتصل لما تبحث عنه بدقة وسرعة.</p>
         </div>
+        <a href="categories.html" class="btn btn-outline btn-sm">عرض كل الأقسام ←</a>
       </div>
       <div class="cat-scroller" id="homeCategories"></div>
     </div>
@@ -167,13 +170,13 @@
 <div id="site-footer"></div>
 
 <!-- تحميل السكربتات بالتوازي دون حجب الواجهة باستخدام defer -->
-<script src="js/config.js?v=47" defer></script>
-<script src="js/icons.js?v=47" defer></script>
+<script src="js/config.js?v=48" defer></script>
+<script src="js/icons.js?v=48" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js" defer></script>
-<script src="js/store.js?v=47" defer></script>
-<script src="js/whatsapp.js?v=47" defer></script>
-<script src="js/app.js?v=47" defer></script>
+<script src="js/store.js?v=48" defer></script>
+<script src="js/whatsapp.js?v=48" defer></script>
+<script src="js/app.js?v=48" defer></script>
 <script>
   let slideInterval = null;
 
@@ -269,6 +272,9 @@
     if (typeof showToast === 'function') {
       showToast(product.name + " أُضيف إلى السلة", "success");
     }
+    if (typeof window.updateCartBadge === 'function') {
+      window.updateCartBadge();
+    }
   }
 
   function renderGridInto(containerId, products, emptyMessage) {
@@ -319,6 +325,10 @@
     if (cachedNew.length) renderGridInto("newGrid", cachedNew.slice(0, 8));
 
     renderAdsSlider();
+
+    if (typeof window.updateCartBadge === 'function') {
+      window.updateCartBadge();
+    }
 
     const homeResults = await Promise.all([
       Store.loadProductsByField("featured", true, "featured", false),
@@ -388,9 +398,11 @@
     }
   }
 
-  // تنفيذ آمن يضمن جاهزية السكربتات المؤجلة (defer)
   window.addEventListener("DOMContentLoaded", () => {
     renderAllHomeContent();
+    if (typeof window.updateCartBadge === 'function') {
+      window.updateCartBadge();
+    }
   });
 
   document.addEventListener("store:synced", () => {
@@ -404,6 +416,9 @@
       }).join("");
     }
     renderAdsSlider();
+    if (typeof window.updateCartBadge === 'function') {
+      window.updateCartBadge();
+    }
   });
 </script>
 </body>

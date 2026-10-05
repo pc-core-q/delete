@@ -1,6 +1,7 @@
 /* ==========================================================================
    app.js
    منطق مشترك بين كل صفحات المتجر: رسم الهيدر والفوتر، القائمة، الإشعارات.
+   تم التحديث: تثبيت عداد السلة ومنع اختفائه عند التنقل بين الصفحات.
    ========================================================================== */
 
 /* ---------- أدوات التهريب المشتركة (متاحة لكل الصفحات) ---------- */
@@ -84,7 +85,10 @@ function renderHeader() {
         '<nav class="main-nav" id="mainNav" aria-label="التنقل الرئيسي">' + navHtml + '</nav>' +
         '<div class="header-actions">' +
           '<button type="button" class="btn-icon" id="openGlobalSearch" aria-label="بحث" title="بحث">' + iconSvg("search") + '</button>' +
-          '<a href="cart.html" class="btn-icon cart-link" aria-label="السلة" title="السلة">' + iconSvg("cart") + '<span class="cart-count" id="cartCount">0</span></a>' +
+          '<a href="cart.html" class="btn-icon cart-link" id="headerCartBtn" aria-label="السلة" title="السلة">' + 
+            iconSvg("cart") + 
+            '<span class="cart-count" id="cartCount">0</span>' +
+          '</a>' +
           '<button class="btn-icon nav-toggle" id="navToggle" aria-label="القائمة">' + iconSvg("menu") + '</button>' +
         '</div>' +
       '</div>' +
@@ -106,6 +110,7 @@ function renderHeader() {
   renderSidebarNav(active);
   initMobileNav();
   initGlobalSearch();
+  updateCartBadge(); // تحديث فوري لشارة السلة بعد رسم الهيدر
 }
 
 function renderSidebarNav(activeKey) {
@@ -249,7 +254,6 @@ function initGlobalSearch() {
 }
 
 function renderFooter() {
-  const mount = document.getElementById("site-header");
   const footerMount = document.getElementById("site-footer");
   if (!footerMount) return;
   const rawSettings = Store.getSettings() || {};
@@ -306,13 +310,19 @@ function initMobileNav() {
   });
 }
 
-function updateCartBadge() {
+window.updateCartBadge = function() {
   const el = document.getElementById("cartCount");
-  if (!el) return;
-  const count = Store.cartCount();
+  if (!el || typeof Store === "undefined") return;
+  const count = Store.cartCount ? Store.cartCount() : 0;
   el.textContent = count;
-  el.style.display = count > 0 ? "flex" : "none";
-}
+  if (count > 0) {
+    el.style.display = "inline-flex";
+    el.classList.add("has-items");
+  } else {
+    el.style.display = "none";
+    el.classList.remove("has-items");
+  }
+};
 
 function showToast(message, type = 'success') {
   let toast = document.getElementById("appToast");
@@ -364,12 +374,16 @@ function fixRelativePaths(scope) { /* no-op */ }
 document.addEventListener("DOMContentLoaded", function () {
   renderHeader();
   renderFooter();
-  updateCartBadge();
+  window.updateCartBadge();
   initBackToTop();
 });
-document.addEventListener("cart:updated", updateCartBadge);
+
+document.addEventListener("cart:updated", function() {
+  window.updateCartBadge();
+});
+
 document.addEventListener("store:synced", function () {
   renderHeader();
   renderFooter();
-  updateCartBadge();
+  window.updateCartBadge();
 });
